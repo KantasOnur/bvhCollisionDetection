@@ -49,7 +49,7 @@ target_compile_definitions(bvhCollisionDetection PRIVATE GLEW_STATIC)
 target_link_libraries(bvhCollisionDetection PRIVATE ${GLFW_LIB_PATH})
 target_link_libraries(bvhCollisionDetection PRIVATE ${GLEW_LIB_PATH})
 target_link_libraries(bvhCollisionDetection PUBLIC OpenGL::GL)
-target_link_libraries(bvhCollisionDetection PRIVATE ImGui)
+target_link_libraries(bvhCollisionDetection PUBLIC ImGui)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET bvhCollisionDetection PROPERTY CXX_STANDARD 20)

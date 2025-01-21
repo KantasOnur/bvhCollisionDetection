@@ -1,8 +1,8 @@
 #include "Window.h"
 #include "Game.h"
 #include "EventManager.h"
-
 #include <iostream>
+#include "Gui.h"
 
 int Window::width_;
 int Window::height_;
@@ -43,6 +43,14 @@ Window::Window(const int& width, const int& height)
 
     glfwSwapInterval(0); // set vsync
 
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigFlags |= ImGuiConfigFlags_NoMouseCursorChange;
+
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window_, true);
+    ImGui_ImplOpenGL3_Init("#version 430");
 }
 
 Window::~Window()

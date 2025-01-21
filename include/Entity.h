@@ -14,8 +14,11 @@ private:
 	AABB m_aabb;
 	Shader m_shader = Shader("Basic");
 
+	inline static int m_instance = 0;
+	int m_id;
 private:
 	void _updateModelMatrix();
+	void _drawGui();
 	//void _checkCollisions();
 public:
 	Entity(const std::string& obj, const glm::vec3& position = {0.0f, 0.0f, 0.0f});

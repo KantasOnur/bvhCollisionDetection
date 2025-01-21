@@ -1,6 +1,7 @@
 #include "Scene.h"
 #include "Entity.h"
 #include <iostream>
+#include "Gui.h"
 
 bool isIntersect(const glm::vec3& min_i, const glm::vec3& max_i,
 	const glm::vec3& min_j, const glm::vec3& max_j)
@@ -31,11 +32,11 @@ void Scene::addSubject(std::unique_ptr<Entity>&& mesh)
 
 void Scene::render()
 {
-	
+
 	m_entities[0]->draw(m_camera);
 	m_entities[1]->draw(m_camera);
 	
-	
+	ImGui::Begin("Entity Parameters");
 	glm::vec3 min_i, max_i, min_j, max_j;
 	for (int i = 0; i < m_entities.size(); ++i)
 	{
@@ -51,5 +52,5 @@ void Scene::render()
 			}
 		}
 	}
-	
+	ImGui::End();
 }
