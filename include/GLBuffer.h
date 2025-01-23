@@ -19,8 +19,15 @@ public:
 		glBindBuffer(type, m_id);
 		glBufferData(type, sizeof(T)* n, data, usage);
 		glBindBuffer(type, 0);
-		m_n = n;
 	};
+	GLBuffer(const GLenum& type, const std::vector<T>& data, const GLenum& usage)
+		: m_type(type), m_n(data.size())
+	{
+		glGenBuffers(1, &m_id);
+		glBindBuffer(type, m_id);
+		glBufferData(type, sizeof(T) * m_n, data.data(), usage);
+		glBindBuffer(type, 0);
+	}
 	~GLBuffer()
 	{
 		glDeleteBuffers(1, &m_id);
@@ -49,7 +56,6 @@ public:
 		glBufferSubData(m_type, 0, sizeof(T) * n, data);
 		glBindBuffer(0, m_id);
 	}
-
 	void bind() const
 	{
 		glBindBuffer(m_type, m_id);
@@ -57,5 +63,10 @@ public:
 	void unbind()
 	{
 		glBindBuffer(m_type, 0);
+	}
+
+	unsigned int getID()
+	{
+		return m_id;
 	}
 };

@@ -24,7 +24,7 @@ void Entity::draw(const Camera& camera)
 	m_shader.unbind();
 }
 
-void Entity::getMinMax(glm::vec3& min, glm::vec3& max)
+void Entity::getMinMax(glm::vec3& min, glm::vec3& max) const
 {
 	min = m_modelMatrix * m_mesh->min;
 	max = m_modelMatrix * m_mesh->max;

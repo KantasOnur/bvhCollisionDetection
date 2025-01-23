@@ -15,6 +15,13 @@ Shader::Shader(const std::string& shader)
     createProgram({ vShader, fShader });
 }
 
+Shader::Shader(const std::string& shader, const GLenum& type)
+{
+    const std::string shaderPath = std::string(SRC) + "/Shaders/Compute/" + shader;
+    unsigned int shaderID = createShader(type, shaderPath);
+    createProgram({ shaderID });
+}
+
 Shader::~Shader()
 {
     glDeleteProgram(id_);

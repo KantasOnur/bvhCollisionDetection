@@ -12,6 +12,9 @@ private:
     unsigned int createShader(GLenum type, const std::string& sourcePath);
     void createProgram(const std::vector<unsigned int>& shaders);
     std::unordered_map<std::string, int> uniformToLocation_;
+
+protected:
+    Shader(const std::string& shader, const GLenum& type);
 public:
     Shader(const std::string& shader);
     ~Shader();

@@ -5,6 +5,7 @@
 #include <memory>
 #include <vector>
 #include "MeshLoader.h"
+#include "GLBuffer.h"
 
 class Mesh
 {
@@ -12,9 +13,9 @@ protected:
 
     const MeshLoader::Mesh* m_mesh;
 
-    unsigned int m_vao, m_ibo;
-    unsigned int m_verticiesSSBO, m_indiciesSSBO;
-
+    unsigned int m_vao;
+    GLBuffer<MeshLoader::Vertex> m_verticiesSSBO;
+    GLBuffer<unsigned int> m_indiciesSSBO;
 protected:
     void _drawMesh(const Camera& camera);
 private:
