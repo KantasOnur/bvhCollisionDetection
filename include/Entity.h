@@ -25,4 +25,6 @@ public:
 	~Entity() = default;
 	void draw(const Camera& camera) override;
 	void getMinMax(glm::vec3& min, glm::vec3& max) const;
+	const GLBuffer<MeshLoader::Vertex>& getVerticies() const;
+	const GLBuffer<unsigned int>& getIndicies() const;
 };

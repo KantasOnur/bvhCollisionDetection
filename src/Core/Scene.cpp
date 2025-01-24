@@ -23,5 +23,4 @@ void Scene::render()
 	m_entities[0]->draw(m_camera);
 	m_entities[1]->draw(m_camera);
 	ImGui::End();
-
 }

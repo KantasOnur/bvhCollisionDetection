@@ -14,6 +14,7 @@ protected:
     const MeshLoader::Mesh* m_mesh;
 
     unsigned int m_vao;
+
     GLBuffer<MeshLoader::Vertex> m_verticiesSSBO;
     GLBuffer<unsigned int> m_indiciesSSBO;
 protected:

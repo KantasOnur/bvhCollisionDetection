@@ -30,6 +30,16 @@ void Entity::getMinMax(glm::vec3& min, glm::vec3& max) const
 	max = m_modelMatrix * m_mesh->max;
 }
 
+const GLBuffer<MeshLoader::Vertex>& Entity::getVerticies() const
+{
+	return m_verticiesSSBO;
+}
+
+const GLBuffer<unsigned int>& Entity::getIndicies() const
+{
+	return m_indiciesSSBO;
+}
+
 void Entity::_updateModelMatrix()
 {
 	m_modelMatrix = glm::translate(glm::mat4(1.0f), m_position);

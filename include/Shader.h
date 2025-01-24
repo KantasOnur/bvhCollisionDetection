@@ -14,7 +14,7 @@ private:
     std::unordered_map<std::string, int> uniformToLocation_;
 
 protected:
-    Shader(const std::string& shader, const GLenum& type);
+    Shader(const std::string& shaderPath, const GLenum& type);
 public:
     Shader(const std::string& shader);
     ~Shader();

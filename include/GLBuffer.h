@@ -28,6 +28,7 @@ public:
 		glBufferData(type, sizeof(T) * m_n, data.data(), usage);
 		glBindBuffer(type, 0);
 	}
+	GLBuffer() = default;
 	~GLBuffer()
 	{
 		glDeleteBuffers(1, &m_id);
@@ -35,15 +36,16 @@ public:
 	unsigned int getID() const { return m_id; };
 	void sendToGPU(const size_t& index) const
 	{
+		glBindBuffer(m_type, m_id);
 		glBindBufferBase(m_type, index, m_id);
+		glBindBuffer(m_type, 0);
+
 	}
-	void retrieveBuffer(const size_t& offset, T* data, const size_t& n = m_n) const
+	std::vector<T> retrieveBuffer() const
 	{
-		if (n > m_n) {
-			throw std::out_of_range("Error: Requested size (n = " + std::to_string(n) +
-				") exceeds buffer size (m_n = " + std::to_string(m_n) + ").");
-		}
-		glGetNamedBufferSubData(m_id, offset, n * sizeof(T), data);
+		std::vector<T> data(m_n);
+		glGetNamedBufferSubData(m_id, 0, m_n * sizeof(T), data.data());
+		return data;
 	}
 
 	void updateBuffer(T* data, const size_t& n = m_n)
@@ -68,5 +70,10 @@ public:
 	unsigned int getID()
 	{
 		return m_id;
+	}
+
+	unsigned int getSize() const
+	{
+		return m_n;
 	}
 };

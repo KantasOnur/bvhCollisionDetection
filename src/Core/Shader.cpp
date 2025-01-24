@@ -15,9 +15,8 @@ Shader::Shader(const std::string& shader)
     createProgram({ vShader, fShader });
 }
 
-Shader::Shader(const std::string& shader, const GLenum& type)
+Shader::Shader(const std::string& shaderPath, const GLenum& type)
 {
-    const std::string shaderPath = std::string(SRC) + "/Shaders/Compute/" + shader;
     unsigned int shaderID = createShader(type, shaderPath);
     createProgram({ shaderID });
 }
