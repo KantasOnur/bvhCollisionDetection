@@ -87,6 +87,6 @@ void Camera::_update(GLFWwindow* window)
         m_inRotation = false;
     }
 
-    if (dx != glm::vec3(0.0f, 0.0f, 0.0f)) position_ +=  0.01f * glm::normalize(dx);
+    if (dx != glm::vec3(0.0f, 0.0f, 0.0f)) position_ +=  0.5f * glm::normalize(dx);
     _updateViewMatrix();
 }

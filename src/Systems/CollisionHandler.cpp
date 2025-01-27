@@ -2,11 +2,16 @@
 #include <iostream>
 
 
+/*
+	It doesnt work for intersection between a 3d mesh and a 2d mesh
+*/
+
 CollisionHandler::CollisionHandler(std::vector<std::unique_ptr<Entity>>* sceneEntities)
 	: m_sceneEntities(sceneEntities) {}
 
 void CollisionHandler::checkCollisions()
 {
+	/*
 	for (int i = 0; i < m_sceneEntities->size(); ++i)
 	{
 		for (int j = 0; j < m_sceneEntities->size(); ++j)
@@ -15,6 +20,8 @@ void CollisionHandler::checkCollisions()
 			if (_isAABBCollided(i, j)) _handleCollision(i, j);
 		}
 	}
+	*/
+	_handleCollision(0, 1);
 }
 
 bool CollisionHandler::_isAABBCollided(const int& i, const int& j)
@@ -40,6 +47,7 @@ bool CollisionHandler::_isAABBCollided(const int& i, const int& j)
 
 void CollisionHandler::_handleCollision(const int& i, const int& j)
 {
+	
 	const Entity* entity_i = (*m_sceneEntities)[i].get();
 	const Entity* entity_j = (*m_sceneEntities)[j].get();
 
@@ -54,14 +62,20 @@ void CollisionHandler::_handleCollision(const int& i, const int& j)
 	indicies_i.sendToGPU(1);
 
 	verticies_j.sendToGPU(2);
-	indicies_i.sendToGPU(3);
+	indicies_j.sendToGPU(3);
+
+	naive.bind();
+	naive.setUInt("nVertex_i", verticies_i.getSize());
+	naive.setUInt("nVertex_j", verticies_j.getSize());
+
+	naive.setUInt("nIndex_i", indicies_i.getSize());
+	naive.setUInt("nIndex_j", indicies_j.getSize());
+
+	naive.setMatrix4f("modelMatrix_i", entity_i->getModelMatrix());
+	naive.setMatrix4f("modelMatrix_j", entity_j->getModelMatrix());
+	naive.unbind();
 
 	const unsigned int threadsPerBlock = 1024;
-	const unsigned int numTriangles = verticies_i.getSize() / 3;
-	const size_t numBlocks = (threadsPerBlock + numTriangles - 1) / threadsPerBlock;
+	const size_t numBlocks = (threadsPerBlock + verticies_i.getSize() - 1) / threadsPerBlock;
 	naive.dispatch(numBlocks, 1, 1);
-	
-
-	//auto test = verticies_i.retrieveBuffer();
-	//std::cout << i << ": " << test[0].color.x << test[0].color.y << test[0].color.z << std::endl;
 }

@@ -10,6 +10,7 @@ class Entity : public Mesh
 private:
 	glm::mat4 m_modelMatrix = glm::mat4(1.0f);
 	glm::vec3 m_position;
+	float m_scale = 1.0f;
 
 	AABB m_aabb;
 	Shader m_shader = Shader("Basic");
@@ -27,4 +28,5 @@ public:
 	void getMinMax(glm::vec3& min, glm::vec3& max) const;
 	const GLBuffer<MeshLoader::Vertex>& getVerticies() const;
 	const GLBuffer<unsigned int>& getIndicies() const;
+	glm::mat4 getModelMatrix() const { return m_modelMatrix; };
 };

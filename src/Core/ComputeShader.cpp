@@ -5,7 +5,8 @@ ComputeShader::ComputeShader(const std::string& shader)
 
 void  ComputeShader::dispatch(GLuint x, GLuint y, GLuint z)
 {
-	glUseProgram(id_);
+	bind();
 	glDispatchCompute(x, y, z);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	unbind();
 }

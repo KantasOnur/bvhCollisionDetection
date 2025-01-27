@@ -9,9 +9,16 @@ struct Vertex
     vec4 color;
 };
 
+struct Triangle
+{
+    vec3 A;
+    vec3 B;
+    vec3 C;
+};
+
 layout(std430, binding = 0) buffer VertexBuffer_i
 {
-    Vertex vertices_i[];
+    Vertex verticies_i[];
 };
 
 layout(std430, binding = 1) buffer IndexBuffer_i
@@ -21,7 +28,7 @@ layout(std430, binding = 1) buffer IndexBuffer_i
 
 layout(std430, binding = 2) buffer VertexBuffer_j
 {
-    Vertex vertices_j[];
+    Vertex verticies_j[];
 };
 
 layout(std430, binding = 3) buffer IndexBuffer_j
@@ -29,10 +36,110 @@ layout(std430, binding = 3) buffer IndexBuffer_j
     uint indicies_j[];
 };
 
+uniform uint nVertex_i;
+uniform uint nVertex_j;
+uniform uint nIndex_i;
+uniform uint nIndex_j;
+
+uniform mat4 modelMatrix_i;
+uniform mat4 modelMatrix_j;
+
+
+bool isRayIntersectPlane(vec3 rayOrigin, vec3 rayDirection, inout Triangle triangle, out vec3 intersectionPoint)
+{
+    // Calculate the plane normal using the triangle's edges
+    vec3 edge1 = triangle.B - triangle.A;
+    vec3 edge2 = triangle.C - triangle.A;
+    vec3 planeNormal = normalize(cross(edge1, edge2));
+    
+    // Calculate the denominator of the intersection formula
+    float denom = dot(planeNormal, rayDirection);
+    
+    // If denom is close to 0, the ray is parallel to the plane
+    if (abs(denom) < 1e-8) {
+        return false; // No intersection
+    }
+    
+    // Calculate the distance from ray origin to the plane
+    float t = dot(planeNormal, triangle.A - rayOrigin) / denom;
+    
+    // If t < 0, the intersection is behind the ray origin
+    if (t < 0.0) {
+        return false;
+    }
+    
+    // Compute the intersection point
+    intersectionPoint = rayOrigin + t * rayDirection;
+    return true;
+}
+
+int rayTriangleIntersection(Triangle triangle, vec3 rayOrigin, vec3 rayDirection)
+{
+    const float EPSILON = 1e-9;
+    
+    vec3 e1 = triangle.B - triangle.A;
+    vec3 e2 = triangle.C - triangle.A;
+    vec3 p  = cross(rayDirection, e2);
+    float det = dot(e1, p);
+    
+    // Ray is parallel to the triangle
+    if (abs(det) < EPSILON) {
+        return 0;
+    }
+    
+    float invDet = 1.0 / det;
+    
+    vec3 T = rayOrigin - triangle.A;
+    float u = dot(T, p) * invDet;
+    if (u < 0.0 || u > 1.0) {
+        return 0;
+    }
+
+    
+    vec3 q = cross(T, e1);
+    float v = dot(rayDirection, q) * invDet;
+    if (v < 0.0 || (u + v) > 1.0) {
+        return 0;
+    }
+
+
+    float t = dot(e2, q) * invDet;
+    if(t > EPSILON) return 1;
+    return 0;
+}
 
 void main()
 {
 
 	const uint threadID = gl_GlobalInvocationID.x;
-    vertices_i[threadID].color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+    if(threadID >= nVertex_i) return;
+
+    vec3 rayOrigin = vec3(modelMatrix_i * verticies_i[threadID].position);
+    vec3 rayDirection = vec3(1.0f, 0.0f, 0.0f);
+
+    uint count = 0;
+
+    const float OFFSET = 1e-3;
+
+    verticies_i[threadID].color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    for(int j = 0; j < nIndex_j; j += 3)
+    {
+        uint idx0 = indicies_j[j + 0];
+        uint idx1 = indicies_j[j + 1];
+        uint idx2 = indicies_j[j + 2];
+
+        Triangle triangle = Triangle(
+            vec3(modelMatrix_j * verticies_j[idx0].position),
+            vec3(modelMatrix_j * verticies_j[idx1].position),
+            vec3(modelMatrix_j * verticies_j[idx2].position)
+        );
+
+        if(rayTriangleIntersection(triangle, rayOrigin, rayDirection) == 1) count++;
+        //if(rayTriangleIntersection(triangle, rayOrigin, rayDirection) == 2) verticies_i[threadID].color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+        //if(rayTriangleIntersection(triangle, rayOrigin, rayDirection) == 3) verticies_i[threadID].color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+
+    }
+
+    if(count % 2 != 0) verticies_i[threadID].color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
 }
+
