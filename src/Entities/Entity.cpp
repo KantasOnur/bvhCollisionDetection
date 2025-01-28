@@ -19,7 +19,7 @@ void Entity::draw(const Camera& camera)
 	m_shader.setMatrix4f("projectionMatrix", camera.getProjection());
 	m_shader.setMatrix4f("viewMatrix", camera.getView());
 	m_shader.setMatrix4f("modelMatrix", m_modelMatrix);
-
+	m_shader.setVec3f("cameraPosition", camera.getPosition());
 	_drawMesh(camera);
 	m_shader.unbind();
 }

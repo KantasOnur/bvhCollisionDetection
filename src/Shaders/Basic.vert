@@ -10,8 +10,14 @@ uniform mat4 viewMatrix;
 uniform mat4 modelMatrix;
 
 out vec4 fragColor;
+out vec4 fragNormal;
+out vec4 fragPosition;
+
 void main()
 {
     fragColor = vertexColor;
+    fragPosition = modelMatrix * vertexPosition;
+    fragNormal = vertexNormal;
+
    	gl_Position = projectionMatrix * viewMatrix * modelMatrix * vertexPosition;
 }
