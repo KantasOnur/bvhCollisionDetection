@@ -4,12 +4,15 @@
 #include <vector>
 #include "Camera.h"
 #include "CollisionHandler.h"
+#include "ConstantSpeedSimulator.h"
 
 class Scene
 {
 private:
 	std::vector<std::unique_ptr<Entity>> m_entities;
 	CollisionHandler m_collisionHandler;
+	ConstantSpeedSimulator m_simulator;
+
 	Camera m_camera;
 public:
 	Scene(const Window& window);

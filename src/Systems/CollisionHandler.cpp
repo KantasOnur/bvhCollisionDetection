@@ -6,10 +6,8 @@
 	It doesnt work for intersection between a 3d mesh and a 2d mesh
 */
 
-CollisionHandler::CollisionHandler(std::vector<std::unique_ptr<Entity>>* sceneEntities)
-	: m_sceneEntities(sceneEntities) {}
 
-void CollisionHandler::checkCollisions()
+void CollisionHandler::checkCollisions(const std::vector<std::unique_ptr<Entity>>& sceneEntities)
 {
 	/*
 	for (int i = 0; i < m_sceneEntities->size(); ++i)
@@ -21,13 +19,13 @@ void CollisionHandler::checkCollisions()
 		}
 	}
 	*/
-	_handleCollision(0, 1);
+	_handleCollision(sceneEntities, 0, 1);
 }
 
-bool CollisionHandler::_isAABBCollided(const int& i, const int& j)
+bool CollisionHandler::_isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
 {
-	const Entity* entity_i = (*m_sceneEntities)[i].get();
-	const Entity* entity_j = (*m_sceneEntities)[j].get();
+	const Entity* entity_i = sceneEntities[i].get();
+	const Entity* entity_j = sceneEntities[j].get();
 
 	glm::vec3 min_i, max_i;
 	glm::vec3 min_j, max_j;
@@ -45,11 +43,11 @@ bool CollisionHandler::_isAABBCollided(const int& i, const int& j)
 		);
 }
 
-void CollisionHandler::_handleCollision(const int& i, const int& j)
+void CollisionHandler::_handleCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
 {
 	
-	const Entity* entity_i = (*m_sceneEntities)[i].get();
-	const Entity* entity_j = (*m_sceneEntities)[j].get();
+	const Entity* entity_i = sceneEntities[i].get();
+	const Entity* entity_j = sceneEntities[j].get();
 
 	const auto& verticies_i = entity_i->getVerticies();
 	const auto& verticies_j = entity_j->getVerticies();

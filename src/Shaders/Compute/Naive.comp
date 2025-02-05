@@ -45,37 +45,9 @@ uniform mat4 modelMatrix_i;
 uniform mat4 modelMatrix_j;
 
 
-bool isRayIntersectPlane(vec3 rayOrigin, vec3 rayDirection, inout Triangle triangle, out vec3 intersectionPoint)
-{
-    // Calculate the plane normal using the triangle's edges
-    vec3 edge1 = triangle.B - triangle.A;
-    vec3 edge2 = triangle.C - triangle.A;
-    vec3 planeNormal = normalize(cross(edge1, edge2));
-    
-    // Calculate the denominator of the intersection formula
-    float denom = dot(planeNormal, rayDirection);
-    
-    // If denom is close to 0, the ray is parallel to the plane
-    if (abs(denom) < 1e-8) {
-        return false; // No intersection
-    }
-    
-    // Calculate the distance from ray origin to the plane
-    float t = dot(planeNormal, triangle.A - rayOrigin) / denom;
-    
-    // If t < 0, the intersection is behind the ray origin
-    if (t < 0.0) {
-        return false;
-    }
-    
-    // Compute the intersection point
-    intersectionPoint = rayOrigin + t * rayDirection;
-    return true;
-}
-
 int rayTriangleIntersection(Triangle triangle, vec3 rayOrigin, vec3 rayDirection)
 {
-    const float EPSILON = 1e-9;
+    const float EPSILON = 0.001e-9;
     
     vec3 e1 = triangle.B - triangle.A;
     vec3 e2 = triangle.C - triangle.A;
@@ -114,12 +86,11 @@ void main()
 	const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= nVertex_i) return;
 
-    vec3 rayOrigin = vec3(modelMatrix_i * verticies_i[threadID].position);
-    vec3 rayDirection = vec3(1.0f, 0.0f, 0.0f);
+    Vertex querryVertex = verticies_i[threadID];
+    vec3 rayOrigin = vec3(modelMatrix_i * querryVertex.position);
+    vec3 rayDirection = vec3(querryVertex.normal);
 
     uint count = 0;
-
-    const float OFFSET = 1e-3;
 
     verticies_i[threadID].color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
     for(int j = 0; j < nIndex_j; j += 3)

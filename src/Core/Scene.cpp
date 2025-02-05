@@ -4,10 +4,12 @@
 #include "Gui.h"
 
 Scene::Scene(const Window& window)
-	: m_camera(window.getAspectRatio()), m_collisionHandler(&m_entities)
+	: m_camera(window.getAspectRatio())
 {
-	addSubject(std::make_unique<Entity>("armadillo"));
+	addSubject(std::make_unique<Entity>("dragon"));
 	addSubject(std::make_unique<Entity>("dragon", glm::vec3{ 1.0f, 1.0f, 0.0f }));
+	m_simulator.subEntity(m_entities[0].get());
+	m_simulator.subEntity(m_entities[1].get());
 }
 
 void Scene::addSubject(std::unique_ptr<Entity>&& mesh)
@@ -17,22 +19,16 @@ void Scene::addSubject(std::unique_ptr<Entity>&& mesh)
 
 void Scene::render()
 {
-	//static bool once = true;
-	//if(once) m_collisionHandler.checkCollisions();
-	//once = false;
+	m_simulator.draw(m_camera);
+	m_simulator.step(m_entities);
+	for (auto& entitiy : m_entities)
+	{
+		entitiy->draw(m_camera);
+	}
 
-	static bool suzanneWireFrame = false;
-
-	m_collisionHandler.checkCollisions();
-
-	ImGui::Begin("Entity Parameters");
-	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+	//m_collisionHandler.checkCollisions(m_entities);
+	/*
 	m_entities[0]->draw(m_camera);
-
-	if (ImGui::Checkbox("WireFrame", &suzanneWireFrame)) suzanneWireFrame != suzanneWireFrame;
-	if(suzanneWireFrame) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-	else  glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	m_entities[1]->draw(m_camera);
-	ImGui::End();
-
+	*/
 }
