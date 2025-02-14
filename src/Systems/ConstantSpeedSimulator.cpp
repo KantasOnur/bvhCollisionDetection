@@ -20,11 +20,8 @@ void ConstantSpeedSimulator::draw(const Camera& camera)
 	for (auto& it : m_entityToVelocity)
 	{
 		Entity* entity = it.first;
-		glm::vec3 position = entity->getPosition();
+		glm::vec3 position = entity->getMidPoint();
 		glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), position);
-		//glm::vec3 velocity = it.second;
-		//glm::vec3 cross = glm::cross({ 1.0f, 0.0f, 0.0f }, velocity);
-		//if(id == 0) std::cout << cross.x << " " << cross.y << " " << cross.z << std::endl;
 
 		m_shader.bind();
 
@@ -69,4 +66,10 @@ void ConstantSpeedSimulator::_drawGui()
 		ImGui::SliderFloat3(std::format("Entity {} velocity", it.first->getID()).c_str(), &v[0], -1.0f, 1.0f);
 	}
 	ImGui::End();
+}
+
+
+glm::vec3 ConstantSpeedSimulator::getVelocity(Entity* entity)
+{
+	return m_entityToVelocity.at(entity);
 }

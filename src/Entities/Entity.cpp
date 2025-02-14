@@ -4,7 +4,7 @@
 #include <iostream>
 
 Entity::Entity(const std::string& obj, const glm::vec3& position)
-	: Mesh(obj), m_position(position), m_aabb(m_mesh, &m_modelMatrix) 
+	: Mesh(obj), m_position(position), m_aabb(m_mesh, m_scale, m_position) 
 {
 	m_id = m_instance++;
 	_updateModelMatrix();
@@ -12,7 +12,7 @@ Entity::Entity(const std::string& obj, const glm::vec3& position)
 
 void Entity::draw(const Camera& camera)
 {
-	
+	m_aabb.draw(camera);
 	_drawGui();
 	
 
@@ -55,8 +55,8 @@ void Entity::_updateModelMatrix()
 
 void Entity::_drawGui()
 {
-	if (ImGui::InputFloat3(std::format("Entity {}: Position", m_id).c_str(), &m_position[0])) _updateModelMatrix();
-	if (ImGui::InputFloat3(std::format("Entity {}: Scale", m_id).c_str(), &m_scale)) _updateModelMatrix();
+	if (ImGui::InputFloat3(std::format("Entity {}: Position", m_id).c_str(), &m_position[0] )) _updateModelMatrix();
+	if (ImGui::SliderFloat(std::format("Entity {}: Scale", m_id).c_str(), &m_scale, 1.0f, 4.0f)) _updateModelMatrix();
 
 	ImGui::Text("Triangles: %d, Vertices: %d", m_indiciesSSBO.getSize() / 3, m_verticiesSSBO.getSize());
 

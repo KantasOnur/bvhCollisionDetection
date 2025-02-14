@@ -1,11 +1,41 @@
 #include "CollisionHandler.h"
 #include <iostream>
-
+#include "ConstantSpeedSimulator.h"
 
 /*
 	It doesnt work for intersection between a 3d mesh and a 2d mesh
 */
 
+void CollisionHandler::_checkSweepCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
+{
+	Entity* entity_i = sceneEntities[i].get();
+	Entity* entity_j = sceneEntities[j].get();
+
+	AABB& aabb_i = entity_i->getAABB();
+	AABB& aabb_j = entity_j->getAABB();
+
+	glm::vec3 vel_i = ConstantSpeedSimulator::getVelocity(entity_i);
+	glm::vec3 vel_j = ConstantSpeedSimulator::getVelocity(entity_j);
+	glm::vec3 dx = vel_i * ConstantSpeedSimulator::getStepTime();
+
+	const glm::vec3& rayOrigin = entity_i->getPosition();
+	glm::vec3 anotherOrigin = aabb_i.getMidPoint();
+	glm::vec3 rayDirection = anotherOrigin + dx;
+
+	aabb_j.MinkowskiSum(aabb_i);
+	float t;
+	bool result = aabb_j.rayMinkowksiSumIntersection(aabb_i, rayDirection, anotherOrigin, t);
+	if (result)
+	{
+		glm::vec3 targetMidPoint = anotherOrigin + dx * t;
+		glm::vec3 midToPivot = anotherOrigin - rayOrigin;
+		glm::vec3 newPosition = targetMidPoint - midToPivot;
+		entity_i->setPosition(newPosition);
+
+
+		std::cout << "collided" << std::endl;
+	}
+}
 
 void CollisionHandler::checkCollisions(const std::vector<std::unique_ptr<Entity>>& sceneEntities)
 {
@@ -19,7 +49,8 @@ void CollisionHandler::checkCollisions(const std::vector<std::unique_ptr<Entity>
 		}
 	}
 	*/
-	_handleCollision(sceneEntities, 0, 1);
+	//_handleCollision(sceneEntities, 0, 1);
+	_checkSweepCollision(sceneEntities, 0, 1);
 }
 
 bool CollisionHandler::_isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)

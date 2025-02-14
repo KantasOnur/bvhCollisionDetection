@@ -10,6 +10,7 @@ endif()
 
 project ("bvhCollisionDetection")
 set(DEPENDENCIES_DIR "${CMAKE_CURRENT_SOURCE_DIR}/dependencies")
+set(OPTIX_DIR "C:/ProgramData/NVIDIA Corporation/OptiX SDK 9.0.0")
 
 file(GLOB_RECURSE SRC_FILES src/*.cpp)
 
@@ -21,9 +22,11 @@ add_compile_definitions(SRC="${CMAKE_CURRENT_SOURCE_DIR}/src")
 target_include_directories(bvhCollisionDetection PRIVATE "${DEPENDENCIES_DIR}/glew/include")
 target_include_directories(bvhCollisionDetection PRIVATE "${DEPENDENCIES_DIR}/glfw/include")
 target_include_directories(bvhCollisionDetection PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}/include/")
+target_include_directories(bvhCollisionDetection PUBLIC "${OPTIX_DIR}/include")
+
 
 find_package(OpenGL REQUIRED)
-
+find_package(CudaToolKit REQUIRED)
 if (CMAKE_SIZEOF_VOID_P EQUAL 8) # 64-bit
   set(GLEW_LIB_PATH "${DEPENDENCIES_DIR}/glew/lib/Release/x64/glew32s.lib")
   set(GLFW_LIB_PATH "${DEPENDENCIES_DIR}/glfw/lib/WIN64/glfw3.lib")
@@ -50,6 +53,7 @@ target_link_libraries(bvhCollisionDetection PRIVATE ${GLFW_LIB_PATH})
 target_link_libraries(bvhCollisionDetection PRIVATE ${GLEW_LIB_PATH})
 target_link_libraries(bvhCollisionDetection PUBLIC OpenGL::GL)
 target_link_libraries(bvhCollisionDetection PUBLIC ImGui)
+target_link_libraries(bvhCollisionDetection PUBLIC CUDA::cudart)
 
 if (CMAKE_VERSION VERSION_GREATER 3.12)
   set_property(TARGET bvhCollisionDetection PROPERTY CXX_STANDARD 20)

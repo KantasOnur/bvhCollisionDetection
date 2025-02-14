@@ -12,6 +12,7 @@ private:
 private:
 	bool _isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
 	void _handleCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
+	void _checkSweepCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
 public:
 	CollisionHandler() = default;
 	void checkCollisions(const std::vector<std::unique_ptr<Entity>>& sceneEntities);

@@ -5,9 +5,8 @@
 class ConstantSpeedSimulator : public Mesh
 {
 private:
-	float m_dt = 0.1f;
-	//std::unordered_map<unsigned int, glm::vec3> m_idToVelocity;
-	std::unordered_map<Entity*, glm::vec3> m_entityToVelocity;
+	static inline float m_dt = 0.1f;
+	static inline std::unordered_map<Entity*, glm::vec3> m_entityToVelocity;
 	bool proceedStep = false;
 
 	glm::vec3 vector = { 0.0f, 1.0f, 0.0f };
@@ -23,4 +22,6 @@ public:
 	void draw(const Camera& camera) override;
 	
 	void step(const std::vector<std::unique_ptr<Entity>>& sceneEntities);
+	static glm::vec3 getVelocity(Entity* entity);
+	static float getStepTime() { return m_dt; };
 };

@@ -13,6 +13,8 @@ private:
 
 	glm::mat4 m_modelMatrix = glm::mat4(1.0f);
 	glm::vec3 m_position;
+	glm::vec3 m_pivot;
+
 	float m_scale = 1.0f;
 
 	AABB m_aabb;
@@ -35,5 +37,8 @@ public:
 	glm::mat4 getModelMatrix() const { return m_modelMatrix; };
 	void setPosition(const glm::vec3& position) { m_position = position; _updateModelMatrix(); };
 	glm::vec3 getPosition() const { return m_position; };
+	float getScale() const { return m_scale; }
 	unsigned int getID() const { return m_id; };
+	AABB& getAABB() { return m_aabb;  }
+	glm::vec3 getMidPoint() { return m_aabb.getMidPoint(); };
 };

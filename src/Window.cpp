@@ -4,6 +4,8 @@
 #include <iostream>
 #include "Gui.h"
 
+
+
 int Window::width_;
 int Window::height_;
 
