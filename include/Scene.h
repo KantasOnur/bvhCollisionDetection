@@ -9,8 +9,7 @@
 class Scene
 {
 private:
-	std::vector<std::unique_ptr<Entity>> m_entities;
-	CollisionHandler m_collisionHandler;
+	std::vector<unsigned int> m_entities;
 	ConstantSpeedSimulator m_simulator;
 
 	Camera m_camera;
@@ -18,5 +17,5 @@ public:
 	Scene(const Window& window);
 	~Scene() = default;
 	void render();
-	void addSubject(std::unique_ptr<Entity>&& mesh);
+	void addSubject(const unsigned int& id);
 };

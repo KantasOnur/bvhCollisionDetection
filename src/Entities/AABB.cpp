@@ -22,14 +22,14 @@ void AABB::draw(const Camera& camera)
     m_shader.setVec4f("max", m_max);
 
 	_drawMesh(camera);
-    
+    /*
 	//draw minkowksi sum 
 	m_shader.setMatrix4f("modelMatrix", glm::mat4(1.0f));
     m_shader.setVec4f("min", glm::vec4(summed_min, 1.0f));
     m_shader.setVec4f("max", glm::vec4(summed_max, 1.0f));
 
 	_drawMesh(camera);
-    
+    */
 	m_shader.unbind();
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);

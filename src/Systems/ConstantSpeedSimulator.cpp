@@ -1,4 +1,5 @@
 #include "ConstantSpeedSimulator.h"
+#include "EntityManager.h"
 #include "Gui.h"
 #include <string>
 #include <format>
@@ -7,10 +8,10 @@
 ConstantSpeedSimulator::ConstantSpeedSimulator()
 	: Mesh("vector") {}
 
-void ConstantSpeedSimulator::subEntity(Entity* entity)
+void ConstantSpeedSimulator::subEntity(const unsigned int& id)
 {
 	//m_idToVelocity[id] = { 0.0f, 0.0f, 0.0f };
-	m_entityToVelocity[entity] = { 0.0f, 0.0f, 0.0f };
+	m_entityToVelocity[id] = { 0.0f, 0.0f, 0.0f };
 }
 
 void ConstantSpeedSimulator::draw(const Camera& camera)
@@ -19,8 +20,10 @@ void ConstantSpeedSimulator::draw(const Camera& camera)
 
 	for (auto& it : m_entityToVelocity)
 	{
-		Entity* entity = it.first;
-		glm::vec3 position = entity->getMidPoint();
+
+		Entity& entity = EntityManager::getInstance().getEntity(it.first);
+
+		glm::vec3 position = entity.getMidPoint();
 		glm::mat4 modelMatrix = glm::translate(glm::mat4(1.0f), position);
 
 		m_shader.bind();
@@ -36,23 +39,27 @@ void ConstantSpeedSimulator::draw(const Camera& camera)
 	}
 }
 
-void ConstantSpeedSimulator::step(const std::vector<std::unique_ptr<Entity>>& sceneEntities)
+void ConstantSpeedSimulator::step(const std::vector<unsigned int>& sceneEntities)
 {
 	static bool autoStep = false;
-
+	
 	ImGui::Begin("Simulator Parameters");
 	ImGui::Checkbox("Auto Step", &autoStep);
+	
 	if ( autoStep || ImGui::Button("Step", { 100.0f, 100.0f }))
 	{
+		
 		for (auto& it : m_entityToVelocity)
 		{
-			Entity* entity = it.first;
+			Entity& entity = EntityManager::getInstance().getEntity(it.first);
 			glm::vec3 velocity = it.second;
-			glm::vec3 position = entity->getPosition();
+			glm::vec3 position = entity.getPosition();
 			position += velocity * m_dt;
-			entity->setPosition(position);
+
+			if(!m_collisionHandler.checkCollisions(entity.getID(), sceneEntities)) entity.setPosition(position);
 		}
 	}
+	
 	ImGui::End();
 }
 
@@ -63,13 +70,13 @@ void ConstantSpeedSimulator::_drawGui()
 	for (auto& it : m_entityToVelocity)
 	{
 		glm::vec3& v = it.second;
-		ImGui::SliderFloat3(std::format("Entity {} velocity", it.first->getID()).c_str(), &v[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3(std::format("Entity {} velocity", it.first).c_str(), &v[0], -1.0f, 1.0f);
 	}
 	ImGui::End();
 }
 
 
-glm::vec3 ConstantSpeedSimulator::getVelocity(Entity* entity)
+glm::vec3 ConstantSpeedSimulator::getVelocity(const unsigned int& id)
 {
-	return m_entityToVelocity.at(entity);
+	return m_entityToVelocity.at(id);
 }

@@ -1,5 +1,6 @@
 #include "Entity.h"
 #include "Gui.h"
+#include "EntityManager.h"
 #include <format>
 #include <iostream>
 
@@ -8,14 +9,13 @@ Entity::Entity(const std::string& obj, const glm::vec3& position)
 {
 	m_id = m_instance++;
 	_updateModelMatrix();
+	EntityManager::getInstance().addEntity(m_id, this); // every entity needs to be dynamically allocated
 }
 
 void Entity::draw(const Camera& camera)
 {
 	m_aabb.draw(camera);
 	_drawGui();
-	
-
 
 	if (m_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	m_shader.bind();
@@ -51,7 +51,6 @@ void Entity::_updateModelMatrix()
 	m_modelMatrix = glm::translate(glm::mat4(1.0f), m_position);
 	m_modelMatrix = glm::scale(m_modelMatrix, glm::vec3(m_scale));
 }
-
 
 void Entity::_drawGui()
 {

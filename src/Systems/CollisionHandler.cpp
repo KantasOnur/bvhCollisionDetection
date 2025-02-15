@@ -1,56 +1,51 @@
 #include "CollisionHandler.h"
 #include <iostream>
 #include "ConstantSpeedSimulator.h"
+#include "EntityManager.h"
 
-/*
-	It doesnt work for intersection between a 3d mesh and a 2d mesh
-*/
-
-void CollisionHandler::_checkSweepCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
+bool CollisionHandler::_checkSweepCollision(const unsigned int& i_id, const unsigned int& j_id)
 {
-	Entity* entity_i = sceneEntities[i].get();
-	Entity* entity_j = sceneEntities[j].get();
+	Entity& entity_i = EntityManager::getInstance().getEntity(i_id);
+	Entity& entity_j = EntityManager::getInstance().getEntity(j_id);
 
-	AABB& aabb_i = entity_i->getAABB();
-	AABB& aabb_j = entity_j->getAABB();
+	
+	AABB& aabb_i = entity_i.getAABB();
+	AABB& aabb_j = entity_j.getAABB();
 
-	glm::vec3 vel_i = ConstantSpeedSimulator::getVelocity(entity_i);
-	glm::vec3 vel_j = ConstantSpeedSimulator::getVelocity(entity_j);
+	glm::vec3 vel_i = ConstantSpeedSimulator::getVelocity(i_id);
+	glm::vec3 vel_j = ConstantSpeedSimulator::getVelocity(j_id);
 	glm::vec3 dx = vel_i * ConstantSpeedSimulator::getStepTime();
+	
+	glm::vec3 position = entity_i.getPosition();
+	glm::vec3 rayOrigin = aabb_i.getMidPoint();
+	glm::vec3 rayEnd = rayOrigin + dx;
 
-	const glm::vec3& rayOrigin = entity_i->getPosition();
-	glm::vec3 anotherOrigin = aabb_i.getMidPoint();
-	glm::vec3 rayDirection = anotherOrigin + dx;
-
-	aabb_j.MinkowskiSum(aabb_i);
 	float t;
-	bool result = aabb_j.rayMinkowksiSumIntersection(aabb_i, rayDirection, anotherOrigin, t);
-	if (result)
+	bool collided = aabb_j.rayMinkowksiSumIntersection(aabb_i, rayEnd, rayOrigin, t);
+	if (collided)
 	{
-		glm::vec3 targetMidPoint = anotherOrigin + dx * t;
-		glm::vec3 midToPivot = anotherOrigin - rayOrigin;
-		glm::vec3 newPosition = targetMidPoint - midToPivot;
-		entity_i->setPosition(newPosition);
-
-
-		std::cout << "collided" << std::endl;
+		glm::vec3 targetMidPoint = rayOrigin + dx * t;
+		glm::vec3 pivotToMid = position - rayOrigin;
+		glm::vec3 newPosition = targetMidPoint + pivotToMid;
+		entity_i.setPosition(newPosition);
 	}
+	return collided;
 }
 
-void CollisionHandler::checkCollisions(const std::vector<std::unique_ptr<Entity>>& sceneEntities)
+bool CollisionHandler::checkCollisions(const unsigned int& id, 
+	const std::vector<unsigned int>& sceneEntities)
 {
-	/*
-	for (int i = 0; i < m_sceneEntities->size(); ++i)
+	for (int j = 0; j < sceneEntities.size(); ++j)
 	{
-		for (int j = 0; j < m_sceneEntities->size(); ++j)
-		{
-			if (i == j) continue;
-			if (_isAABBCollided(i, j)) _handleCollision(i, j);
-		}
+		/*
+		if (j == i) continue;
+		if (_checkSweepCollision(sceneEntities[i].get(), sceneEntities[j].get())) return true;
+		*/
+
+		if (id == sceneEntities[j]) continue;
+		if (_checkSweepCollision(id, sceneEntities[j])) return true;
 	}
-	*/
-	//_handleCollision(sceneEntities, 0, 1);
-	_checkSweepCollision(sceneEntities, 0, 1);
+	return false;
 }
 
 bool CollisionHandler::_isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)

@@ -10,10 +10,12 @@ private:
 	ComputeShader naive = ComputeShader("Naive");
 
 private:
-	bool _isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
+	bool _isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, 
+		const int& i, const int& j);
 	void _handleCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
-	void _checkSweepCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j);
+	bool _checkSweepCollision(const unsigned int& i_id, const unsigned int& j_id);
 public:
 	CollisionHandler() = default;
-	void checkCollisions(const std::vector<std::unique_ptr<Entity>>& sceneEntities);
+	bool checkCollisions(const unsigned int& id,
+		const std::vector<unsigned int>& sceneEntities);
 };
