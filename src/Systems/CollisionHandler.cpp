@@ -29,35 +29,38 @@ bool CollisionHandler::_checkSweepCollision(const unsigned int& i_id, const unsi
 		glm::vec3 newPosition = targetMidPoint + pivotToMid;
 		entity_i.setPosition(newPosition);
 	}
-	return collided;
+	return collided && t > 0.0001f;
 }
 
 bool CollisionHandler::checkCollisions(const unsigned int& id, 
-	const std::vector<unsigned int>& sceneEntities)
+	const std::vector<unsigned int>& sceneEntities, const glm::vec3& newPosition)
 {
 	for (int j = 0; j < sceneEntities.size(); ++j)
 	{
-		/*
-		if (j == i) continue;
-		if (_checkSweepCollision(sceneEntities[i].get(), sceneEntities[j].get())) return true;
-		*/
-
 		if (id == sceneEntities[j]) continue;
-		if (_checkSweepCollision(id, sceneEntities[j])) return true;
+		const unsigned int j_id = sceneEntities[j];
+		bool missedCollision = _checkSweepCollision(id, j_id);
+		if (!missedCollision && _isAABBCollided(id, j_id))
+		{
+			// Position is updated here, because doing so in the simulator causes the _handleCollision function to use the old position
+			EntityManager::getInstance().getEntity(id).setPosition(newPosition);
+			_handleCollision(id, j_id);
+			return true;
+		}
 	}
 	return false;
 }
 
-bool CollisionHandler::_isAABBCollided(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
+bool CollisionHandler::_isAABBCollided(const unsigned int& i_id, const unsigned int& j_id)
 {
-	const Entity* entity_i = sceneEntities[i].get();
-	const Entity* entity_j = sceneEntities[j].get();
+	Entity& entity_i = EntityManager::getInstance().getEntity(i_id);
+	Entity& entity_j = EntityManager::getInstance().getEntity(j_id);
 
 	glm::vec3 min_i, max_i;
 	glm::vec3 min_j, max_j;
 
-	entity_i->getMinMax(min_i, max_i);
-	entity_j->getMinMax(min_j, max_j);
+	entity_i.getMinMax(min_i, max_i);
+	entity_j.getMinMax(min_j, max_j);
 
 	return (
 		min_i.x <= max_j.x &&
@@ -69,17 +72,17 @@ bool CollisionHandler::_isAABBCollided(const std::vector<std::unique_ptr<Entity>
 		);
 }
 
-void CollisionHandler::_handleCollision(const std::vector<std::unique_ptr<Entity>>& sceneEntities, const int& i, const int& j)
+void CollisionHandler::_handleCollision(const unsigned int& i_id, const unsigned int& j_id)
 {
 	
-	const Entity* entity_i = sceneEntities[i].get();
-	const Entity* entity_j = sceneEntities[j].get();
+	Entity& entity_i = EntityManager::getInstance().getEntity(i_id);
+	Entity& entity_j = EntityManager::getInstance().getEntity(j_id);
 
-	const auto& verticies_i = entity_i->getVerticies();
-	const auto& verticies_j = entity_j->getVerticies();
+	const auto& verticies_i = entity_i.getVerticies();
+	const auto& verticies_j = entity_j.getVerticies();
 
-	const auto& indicies_i = entity_i->getIndicies();
-	const auto& indicies_j = entity_j->getIndicies();
+	const auto& indicies_i = entity_i.getIndicies();
+	const auto& indicies_j = entity_j.getIndicies();
 	
 
 	verticies_i.sendToGPU(0);
@@ -95,8 +98,8 @@ void CollisionHandler::_handleCollision(const std::vector<std::unique_ptr<Entity
 	naive.setUInt("nIndex_i", indicies_i.getSize());
 	naive.setUInt("nIndex_j", indicies_j.getSize());
 
-	naive.setMatrix4f("modelMatrix_i", entity_i->getModelMatrix());
-	naive.setMatrix4f("modelMatrix_j", entity_j->getModelMatrix());
+	naive.setMatrix4f("modelMatrix_i", entity_i.getModelMatrix());
+	naive.setMatrix4f("modelMatrix_j", entity_j.getModelMatrix());
 	naive.unbind();
 
 	const unsigned int threadsPerBlock = 1024;

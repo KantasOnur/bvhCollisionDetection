@@ -56,7 +56,10 @@ void ConstantSpeedSimulator::step(const std::vector<unsigned int>& sceneEntities
 			glm::vec3 position = entity.getPosition();
 			position += velocity * m_dt;
 
-			if(!m_collisionHandler.checkCollisions(entity.getID(), sceneEntities)) entity.setPosition(position);
+			m_collisionHandler.checkCollisions(entity.getID(), sceneEntities, position);
+
+			// there is a bug here checking then setting the position causes collision viewer to be one frame late.
+			//if(!m_collisionHandler.checkCollisions(entity.getID(), sceneEntities)) entity.setPosition(position); 
 		}
 	}
 	
