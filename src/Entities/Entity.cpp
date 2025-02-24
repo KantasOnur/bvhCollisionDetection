@@ -5,16 +5,17 @@
 #include <iostream>
 
 Entity::Entity(const std::string& obj, const glm::vec3& position)
-	: Mesh(obj), m_position(position), m_aabb(m_mesh, m_scale, m_position) 
+	: Mesh(obj), m_position(position), m_aabb(m_mesh, m_scale, m_position), m_id(m_instance++)
 {
-	m_id = m_instance++;
+	//m_id = m_instance++;
 	_updateModelMatrix();
 	EntityManager::getInstance().addEntity(m_id, this); // every entity needs to be dynamically allocated
+	m_bvh = std::make_unique<BVH::BVH>(m_id);
 }
 
 void Entity::draw(const Camera& camera)
 {
-	m_aabb.draw(camera);
+	//m_aabb.draw(camera);
 	_drawGui();
 
 	if (m_wireframe) glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);

@@ -1,0 +1,96 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+struct Box
+{
+	vec4 min;
+	vec4 max;
+};
+
+struct LeafNode
+{
+	
+    uint code;		// 0 aligned
+    
+    uint i0;		// 4 aligned
+    uint i1;		// 8 aligned
+    uint i2;		// 12 aligned
+
+    Box box;		// 16 aligned
+
+    int parent;	// 48 aligned
+
+    uint pad0;		
+    uint pad1;
+    uint pad2;
+};
+
+struct InternalNode {
+    uint start;               // offset 0
+    uint end;                 // offset 4
+    uint left;                // offset 8
+    uint right;               // offset 12
+    int parent;				  // offset 16
+    uint is_left_internal;    // offset 20 (4 bytes)
+    uint is_right_internal;   // offset 24 (4 bytes)
+    uint pad0;                // padding: offset 28-32 (4 bytes)
+    Box box;                  // offset 32, size 32 bytes (vec4 min & vec4 max)
+    uint count_arrival;       // offset 64, size 4 bytes
+    uint pad1;                // padding: offset 68-80 (12 bytes total, could be three uints)
+    uint pad2;
+    uint pad3;
+};
+
+
+layout(std430, binding = 0) buffer InternalNodesBuffer
+{
+    InternalNode internalNodes[];
+};
+
+layout(std430, binding = 1) buffer LeafNodesBuffer
+{
+	LeafNode leafNodes[];
+};
+
+uniform uint numLeafs;
+
+Box unite_box(Box b1, Box b2)
+{
+	Box box_union = Box(vec4(0.0f), vec4(0.0f));
+
+	box_union.min = min(b1.min, b2.min);
+	box_union.max = max(b1.max, b2.max);
+	
+	return box_union;
+}
+
+void main()
+{
+	const uint numInternals = numLeafs - 1;
+	const uint threadID = gl_GlobalInvocationID.x;
+    if(threadID >= numLeafs) return;
+	
+	LeafNode ln = leafNodes[threadID];
+	int parent = ln.parent;
+
+	Box box_left = Box(vec4(0.0f), vec4(0.0f));
+	Box box_right = Box(vec4(0.0f), vec4(0.0f));
+	
+	while(parent > -1)
+	{
+		InternalNode parent_internal = internalNodes[parent];
+			
+		if(atomicAdd(internalNodes[parent].count_arrival, 1) == 0) return;
+
+		if(parent_internal.is_left_internal == 1) box_left = internalNodes[parent_internal.left].box;
+		else box_left = leafNodes[parent_internal.left].box;
+
+		if(parent_internal.is_right_internal == 1) box_right = internalNodes[parent_internal.right].box;
+		else box_right = leafNodes[parent_internal.right].box;
+
+		Box box_union = unite_box(box_left, box_right);
+		internalNodes[parent].box = box_union;
+		parent = parent_internal.parent;
+	}
+}

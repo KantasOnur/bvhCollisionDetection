@@ -4,6 +4,7 @@
 #include <string>
 #include "Shader.h"
 #include "AABB.h"
+#include "BVH.h"
 
 class Entity : public Mesh
 {
@@ -18,6 +19,8 @@ private:
 	float m_scale = 1.0f;
 
 	AABB m_aabb;
+	std::unique_ptr<BVH::BVH> m_bvh;
+
 	Shader m_shader = Shader("Basic");
 
 	inline static int m_instance = 0;

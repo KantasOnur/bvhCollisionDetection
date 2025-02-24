@@ -1,0 +1,126 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+struct Vertex 
+{
+    vec4 position;
+	vec4 normal;
+    vec4 color;
+};
+
+struct Box
+{
+	vec4 min;
+	vec4 max;
+};
+
+struct LeafNode
+{
+	//uvec4 code;
+	//Box box;
+    uint code;  // 4 bytes
+    
+    uint i0;    // 4 bytes
+    uint i1;    // 4 bytes
+    uint i2;    // 4 bytes
+
+    Box box;     // 8 bytes
+
+    int parent;
+
+    uint pad0;
+    uint pad1;
+    uint pad2;
+};
+
+layout(std430, binding = 0) buffer MortonBuffer
+{
+    LeafNode mortonCodes[];
+};
+
+layout(std430, binding = 1) buffer VertexBuffer
+{
+    Vertex verticies[];
+};
+
+layout(std430, binding = 2) buffer IndexBuffer
+{
+    uint indicies[];
+};
+
+
+uniform vec3 u_min;
+uniform vec3 u_max;
+uniform uint triangleCount;
+
+vec3 normalizePosition(vec3 position)
+{
+    float x = (position.x - u_min.x) / (u_max.x - u_min.x);
+    float y = (position.y - u_min.y) / (u_max.y - u_min.y);
+    float z = (position.z - u_min.z) / (u_max.z - u_min.z);
+
+    return vec3(x, y, z);
+}
+
+vec3 getCentroid(vec4 p0, vec4 p1, vec4 p2)
+{
+    return vec3(p0 + p1 + p2) / 3;
+}
+
+
+uint expandBits(uint v)
+{
+    v = (v * 0x00010001u) & 0xFF0000FFu;
+    v = (v * 0x00000101u) & 0x0F00F00Fu;
+    v = (v * 0x00000011u) & 0xC30C30C3u;
+    v = (v * 0x00000005u) & 0x49249249u;
+    return v;
+}
+
+uint morton3D(vec3 position)
+{
+    float x = min(max(position.x * 1024.0f, 0.0f), 1023.0f);
+    float y = min(max(position.y * 1024.0f, 0.0f), 1023.0f);
+    float z = min(max(position.z * 1024.0f, 0.0f), 1023.0f);
+
+    uint xx = expandBits(uint(x));
+    uint yy = expandBits(uint(y));
+    uint zz = expandBits(uint(z));
+    return xx * 4 + yy * 2 + zz;
+}
+
+Box getBox(vec4 p0, vec4 p1, vec4 p2)
+{
+    // Compute the component-wise minimum and maximum of the three points.
+    vec4 minPoint = min(p0, min(p1, p2));
+    vec4 maxPoint = max(p0, max(p1, p2));
+
+    // Create and return a Box with the computed min and max vectors.
+    return Box(minPoint, maxPoint);
+}
+
+void main()
+{
+	const uint threadID = gl_GlobalInvocationID.x;
+    if(threadID >= triangleCount) return;
+
+    uint i0 = indicies[3 * threadID + 0];
+    uint i1 = indicies[3 * threadID + 1];
+    uint i2 = indicies[3 * threadID + 2];
+
+    Vertex t0 = verticies[i0];
+    Vertex t1 = verticies[i1];
+    Vertex t2 = verticies[i2];
+
+    vec3 center = getCentroid(t0.position, t1.position, t2.position);
+    vec3 center_norm = normalizePosition(center);
+    
+    uint code = morton3D(center_norm);
+
+
+    //mortonCodes[threadID] = uvec4(code, i0, i1, i2);
+    Box box = getBox(t0.position, t1.position, t2.position);
+
+    mortonCodes[threadID] = LeafNode(code, i0, i1, i2, box, -1, -1, -1, -1);
+}
