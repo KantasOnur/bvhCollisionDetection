@@ -48,15 +48,6 @@ namespace BVH
 
 	constexpr int maxPrimitives = 10;
 
-	/*
-	struct Node
-	{
-		glm::vec3 min, max;
-		Node* left;
-		Node* right;
-		Node* parent;
-	};
-	*/
 	struct Node
 	{
 		unsigned int startIndex;
@@ -90,30 +81,13 @@ namespace BVH
 
 		Shader shader = Shader("AABB");
 
-		//ComputeShader _sortMortonCodes = ComputeShader("computeMortonCodes");
-
 		void _constructLeafNodes();
 		void _constructInternalNodes();
 		void _constructBounds();
-		Box _constructBoundsCPU(std::vector<LeafNode>& leafNodes,
-								std::vector<InternalNode>& internalNodes,
-								unsigned int currentNode);
 
-		std::vector<InternalNode> _constructInternalNodesCPU(std::vector<LeafNode>& MortonCodes);
 
 		void _destroyRecursive(Node* node);
 		std::vector<LeafNode> _getMortonCodes();
-		Node* _generateHierarchy(const std::vector<LeafNode>& codes,
-			const unsigned int& first, const unsigned int& last);
-
-		int _findSplit(const std::vector<LeafNode>& codes,
-					   const unsigned int& first,
-					   const unsigned int& last);
-
-		glm::vec2 _determineRnage(const std::vector<LeafNode> mortonCode, const int& i);
-		int _countCommonPrefix(const std::vector<LeafNode> sortedMortonCodes,
-							   int i,
-							   int j);
 
 		void drawRecursive(const Camera& camera, const unsigned int depth, 
 			const std::vector<InternalNode>& nodes, const unsigned int currentNode);
