@@ -37,7 +37,7 @@ struct InternalNode {
 	unsigned is_right_internal = 1;		// offset 24 (4 bytes)
 	unsigned int pad0;              // padding: offset 28-32 (4 bytes)
 	Box box;						// offset 32, size 32 bytes (vec4 min & vec4 max)
-	unsigned int count_arrival;     // offset 64, size 4 bytes
+	unsigned int count_arrival = 0;     // offset 64, size 4 bytes
 	unsigned int pad1;              // padding: offset 68-80 (12 bytes total, could be three uints)
 	unsigned int pad2;
 	unsigned int pad3;
@@ -68,21 +68,38 @@ namespace BVH
 
 
 
-	class BVH //: public Mesh
+	class BVH : public Mesh
 	{
 	private:
 		Node* m_hierarchy = nullptr;
 		
 		// Dont understand why I cant initialize GLBuffer later.
 		// Hacky but it works.
-		std::unique_ptr<GLBuffer<LeafNode>> m_mortonCodes = nullptr;
+		std::unique_ptr<GLBuffer<LeafNode>> m_leafNodes = nullptr;
+		std::unique_ptr<GLBuffer<InternalNode>> m_internalNodes = nullptr;
+
 
 		unsigned int m_entityID;
+		unsigned int m_numLeaves;
+		unsigned int m_numInternals;
+
 	private:
 		ComputeShader _computeMortonCodes = ComputeShader("computeMortonCodes");
 		ComputeShader _computeBounds = ComputeShader("computeBounds");
+		ComputeShader _computeInternalsNodes = ComputeShader("computeInternalNodes");
+
+		Shader shader = Shader("AABB");
 
 		//ComputeShader _sortMortonCodes = ComputeShader("computeMortonCodes");
+
+		void _constructLeafNodes();
+		void _constructInternalNodes();
+		void _constructBounds();
+		Box _constructBoundsCPU(std::vector<LeafNode>& leafNodes,
+								std::vector<InternalNode>& internalNodes,
+								unsigned int currentNode);
+
+		std::vector<InternalNode> _constructInternalNodesCPU(std::vector<LeafNode>& MortonCodes);
 
 		void _destroyRecursive(Node* node);
 		std::vector<LeafNode> _getMortonCodes();
@@ -97,11 +114,13 @@ namespace BVH
 		int _countCommonPrefix(const std::vector<LeafNode> sortedMortonCodes,
 							   int i,
 							   int j);
+
+		void drawRecursive(const Camera& camera, const unsigned int depth, 
+			const std::vector<InternalNode>& nodes, const unsigned int currentNode);
 	public:
 		BVH(const unsigned int& id);
 		~BVH();
-
-		//void draw(const Camera& camera) override;
+		void draw(const Camera& camera) override;
 	};
 }
 

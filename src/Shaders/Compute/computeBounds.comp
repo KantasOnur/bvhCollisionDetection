@@ -67,30 +67,39 @@ Box unite_box(Box b1, Box b2)
 
 void main()
 {
-	const uint numInternals = numLeafs - 1;
 	const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= numLeafs) return;
 	
 	LeafNode ln = leafNodes[threadID];
-	int parent = ln.parent;
+	int currentNode = ln.parent;
 
 	Box box_left = Box(vec4(0.0f), vec4(0.0f));
 	Box box_right = Box(vec4(0.0f), vec4(0.0f));
 	
-	while(parent > -1)
+	while(currentNode > -1)
 	{
-		InternalNode parent_internal = internalNodes[parent];
-			
-		if(atomicAdd(internalNodes[parent].count_arrival, 1) == 0) return;
+        if(atomicAdd(internalNodes[currentNode].count_arrival, 1) == 0) return;
+        memoryBarrierBuffer();
 
-		if(parent_internal.is_left_internal == 1) box_left = internalNodes[parent_internal.left].box;
-		else box_left = leafNodes[parent_internal.left].box;
+        if(internalNodes[currentNode].is_left_internal == 0)
+        {
+            box_left = leafNodes[internalNodes[currentNode].left].box;
+        }
+        else
+        {
+            box_left = internalNodes[internalNodes[currentNode].left].box;
+        }
 
-		if(parent_internal.is_right_internal == 1) box_right = internalNodes[parent_internal.right].box;
-		else box_right = leafNodes[parent_internal.right].box;
+        if(internalNodes[currentNode].is_right_internal == 0)
+        {
+            box_right = leafNodes[internalNodes[currentNode].right].box;
+        }
+        else
+        {
+            box_right = internalNodes[internalNodes[currentNode].right].box;
+        }
 
-		Box box_union = unite_box(box_left, box_right);
-		internalNodes[parent].box = box_union;
-		parent = parent_internal.parent;
+        internalNodes[currentNode].box = unite_box(box_left, box_right);
+        currentNode = internalNodes[currentNode].parent;
 	}
 }

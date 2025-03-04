@@ -29,6 +29,12 @@ void Entity::draw(const Camera& camera)
 	m_shader.unbind();
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+	ImGui::Begin("BVH");
+	static bool drawBVH = false;
+	ImGui::Checkbox("drawBVH", &drawBVH);
+	if(drawBVH) m_bvh->draw(camera);
+	ImGui::End();
 }
 
 void Entity::getMinMax(glm::vec3& min, glm::vec3& max) const

@@ -1,0 +1,164 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+struct Box
+{
+	vec4 min;
+	vec4 max;
+};
+
+struct LeafNode
+{
+	
+    uint code;		// 0 aligned
+    
+    uint i0;		// 4 aligned
+    uint i1;		// 8 aligned
+    uint i2;		// 12 aligned
+
+    Box box;		// 16 aligned
+
+    int parent;	// 48 aligned
+
+    uint pad0;		
+    uint pad1;
+    uint pad2;
+};
+
+struct InternalNode {
+    uint start;               // offset 0
+    uint end;                 // offset 4
+    uint left;                // offset 8
+    uint right;               // offset 12
+    int parent;				  // offset 16
+    uint is_left_internal;    // offset 20 (4 bytes)
+    uint is_right_internal;   // offset 24 (4 bytes)
+    uint pad0;                // padding: offset 28-32 (4 bytes)
+    Box box;                  // offset 32, size 32 bytes (vec4 min & vec4 max)
+    uint count_arrival;       // offset 64, size 4 bytes
+    uint pad1;                // padding: offset 68-80 (12 bytes total, could be three uints)
+    uint pad2;
+    uint pad3;
+};
+
+
+layout(std430, binding = 0) buffer InternalNodesBuffer
+{
+    InternalNode internalNodes[];
+};
+
+layout(std430, binding = 1) buffer LeafNodesBuffer
+{
+	LeafNode leafNodes[];
+};
+
+uniform uint numInternals;
+uniform uint numLeaves;
+
+int clz(uint x)
+{
+    if (x == 0u) return 32;
+    return 31 - findMSB(x);
+}
+
+int countCommonPrefix(const int i, const int j)
+{
+    if (i >= numLeaves || j >= numLeaves) return -1;
+    if (i < 0 || j < 0) return -1;
+
+	uint codeA = leafNodes[i].code;
+	uint codeB = leafNodes[j].code;
+
+	if (codeA == codeB)
+		return 32 + clz(uint(i) ^ uint(j));
+
+	return clz(codeA ^ codeB);
+}
+
+ivec2 determineRange(const int i)
+{
+
+	int d = countCommonPrefix(i, i + 1) - countCommonPrefix(i, i - 1);
+	d = d < 0 ? -1 : 1;
+
+	int deltaMin = countCommonPrefix(i, i - d);
+	int l_max = 2;
+	while (countCommonPrefix(i, i + l_max * d) > deltaMin)
+	{
+		l_max *= 2;
+	}
+	int l = 0;
+	for (int t = l_max >> 1; t >= 1; t >>= 1)
+	{
+		if (countCommonPrefix(i, i + (l + t) * d) > deltaMin)
+		{
+			l += t;
+		}
+	}
+	int j = i + l * d;
+	return ivec2(min(i, j), max(i, j));
+}
+
+int findSplit(const int first, const int last)
+{
+    uint firstCode = leafNodes[first].code;
+	uint lastCode = leafNodes[last].code;
+
+	int commonPrefix = countCommonPrefix(first, last);
+
+	int split = first;
+	int step = last - first;
+
+    do
+	{
+		step = (step + 1) >> 1;
+		int newSplit = split + step;
+		if (newSplit < last)
+		{
+			int splitPrefix = countCommonPrefix(first, newSplit);
+			if (splitPrefix > commonPrefix)
+				split = newSplit;
+		}
+	} while (step > 1);
+	return split;
+}
+
+void main()
+{
+    const int threadID = int(gl_GlobalInvocationID.x);
+    if(threadID >= numInternals) return;
+    
+	ivec2 range = determineRange(threadID);
+	int first = range.x;
+	int last = range.y;
+
+
+	int split = findSplit(first, last);
+
+	uint left = split;
+	if (split == first)
+		internalNodes[threadID].is_left_internal = 0;
+
+	uint right = split + 1;
+	if (split + 1 == last)
+		internalNodes[threadID].is_right_internal = 0;
+
+
+	internalNodes[threadID].left = left;
+	internalNodes[threadID].right = right;
+
+
+	if (internalNodes[threadID].is_left_internal == 1)
+		internalNodes[left].parent = threadID;
+	else
+		leafNodes[left].parent = threadID;
+
+	if (internalNodes[threadID].is_right_internal == 1)
+		internalNodes[right].parent = threadID;
+	else
+		leafNodes[right].parent = threadID;
+
+	internalNodes[threadID].start = first;
+	internalNodes[threadID].end = last;   
+}

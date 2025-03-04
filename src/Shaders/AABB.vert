@@ -21,6 +21,9 @@ uniform mat4 modelMatrix;
 uniform vec4 min;
 uniform vec4 max;
 uniform float scaleFactor;
+uniform vec3 colour;
+
+out vec3 fragColour;
 
 mat4 scale(vec3 s)
 {
@@ -41,5 +44,6 @@ void main()
     
     //vec3 a = 2.0f
     //mat4 modelMatrix_ = modelMatrix * scale(vec3(scaleFactor));
+    fragColour = colour;
     gl_Position = projectionMatrix * viewMatrix * modelMatrix * worldPosition;
 }
