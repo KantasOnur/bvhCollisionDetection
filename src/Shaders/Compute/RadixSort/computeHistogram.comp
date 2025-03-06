@@ -1,0 +1,37 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer HistogramBuffer
+{
+    uint histogram[];
+};
+
+layout(std430, binding = 1) buffer UintBuffer
+{
+    uint uints[];
+};
+
+layout(std430, binding = 2) buffer UintBuffer0
+{
+    uint uints0[];
+};
+
+layout(std430, binding = 3) buffer UintBuffer1
+{
+   uint uints1[];  
+};
+
+uniform uint numUints;
+uniform uint bitStage;
+
+void main()
+{
+    const uint threadID = gl_GlobalInvocationID.x;
+    if(threadID >= numUints) return;
+    const uint val = uints[threadID];
+    atomicAdd(histogram[(val >> bitStage) & 1], 1);
+    uints0[threadID] = (val >> bitStage) ^ 1;
+    uints1[threadID] = (val >> bitStage) & 1;
+
+}

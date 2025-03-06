@@ -1,0 +1,73 @@
+#version 430 core
+
+// Since each thread processes 2 elements, there should be 512 threads per block which process 1024 elements;
+layout (local_size_x = 512, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer InputBuffer
+{
+	uint data_in[];
+};
+
+layout(std430, binding = 1) buffer OutputBuffer
+{
+	uint data_out[];
+};
+
+layout(std430, binding = 2) buffer BlockSumsBuffer
+{
+	uint sums[];
+};
+
+uniform int n;
+shared uint smem[1024];
+
+void main()
+{
+
+	uint th_id = gl_LocalInvocationID.x;
+	if(2*gl_GlobalInvocationID.x >= n || 2*gl_GlobalInvocationID.x + 1 >= n) return;
+
+	int offset = 1;
+
+	smem[2*th_id] = data_in[2*gl_GlobalInvocationID.x];
+	smem[2*th_id+1] = data_in[2*gl_GlobalInvocationID.x+1];
+	
+	for(int d = n >> 1; d > 0; d >>= 1)
+	{
+		barrier();
+		if(th_id < d)
+		{
+			uint ai = offset * (2 * th_id + 1) - 1;
+			uint bi = offset * (2 * th_id + 2) - 1;
+
+			smem[bi] += smem[ai];
+		}
+		offset *= 2;
+	}
+
+	if(th_id == 0) 
+	{
+		sums[gl_WorkGroupID.x] = smem[1023];
+		smem[1023] = 0;
+	}
+
+	for(int d = 1; d < n; d *= 2)
+	{
+		offset >>= 1;
+		barrier();
+
+		if(th_id < d)
+		{
+			uint ai = offset * (2 * th_id + 1) - 1;
+			uint bi = offset * (2 * th_id + 2) - 1;
+
+			uint t = smem[ai];
+			smem[ai] = smem[bi];
+			smem[bi] += t;
+		}
+	}
+
+	barrier();
+	data_out[2*gl_GlobalInvocationID.x] = smem[2*th_id];
+	data_out[2*gl_GlobalInvocationID.x + 1] = smem[2*th_id + 1];
+}

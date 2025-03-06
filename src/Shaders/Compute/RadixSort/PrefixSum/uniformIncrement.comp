@@ -1,0 +1,26 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer IncrBuffer
+{
+	uint incr[];
+};
+
+layout(std430, binding = 1) buffer OutputBuffer
+{
+	uint data_out[];
+};
+
+uniform int n;
+shared uint smem[1];
+
+void main()
+{
+	const uint th_id = gl_GlobalInvocationID.x;
+	if(th_id >= n) return;
+	if(gl_LocalInvocationID.x == 0) smem[0] = incr[gl_WorkGroupID.x];
+	barrier();
+	uint increment = smem[0];
+	data_out[th_id] += increment;
+}

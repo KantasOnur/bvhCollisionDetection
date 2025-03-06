@@ -79,11 +79,21 @@ namespace BVH
 		ComputeShader _computeBounds = ComputeShader("computeBounds");
 		ComputeShader _computeInternalsNodes = ComputeShader("computeInternalNodes");
 
+		//ComputeShader _radixSort = ComputeShader("radixSort");
+		ComputeShader _computeHistogram = ComputeShader("RadixSort/computeHistogram");
+		ComputeShader _computePrefixSum = ComputeShader("RadixSort/PrefixSum/prefixSum");
+		ComputeShader _computePrefixSumAux = ComputeShader("RadixSort/PrefixSum/prefixSumAux");
+		ComputeShader _computeUniformIncrement = ComputeShader("RadixSort/PrefixSum/uniformIncrement");
+
 		Shader shader = Shader("AABB");
 
 		void _constructLeafNodes();
 		void _constructInternalNodes();
 		void _constructBounds();
+
+
+		void _buildHistogram(std::vector<unsigned int> values);
+		void _prefixSum(std::vector<unsigned int> values);
 
 
 		void _destroyRecursive(Node* node);
