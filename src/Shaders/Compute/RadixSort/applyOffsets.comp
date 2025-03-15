@@ -1,0 +1,51 @@
+#version 430 core
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer dataBufferIn
+{
+    uint data_in[];
+};
+
+layout(std430, binding = 1) buffer dataBufferOut
+{
+    uint data_out[];
+};
+
+
+layout(std430, binding = 2) buffer histogramBuffer
+{
+    uint histogram[];
+};
+
+
+layout(std430, binding = 3) buffer setBitsPrefixSumBuffer
+{
+    uint setBitsPrefixSum[];
+};
+
+layout(std430, binding = 4) buffer unsetBitsPrefixSumBuffer
+{
+    uint unsetBitsPrefixSum[];
+};
+
+uniform uint n;
+uniform uint bitStage;
+
+void main()
+{
+    const uint threadID = gl_GlobalInvocationID.x;
+    if(threadID >= n) return;
+    
+    uint value = data_in[threadID];
+    uint bit = (value >> bitStage) & 1;
+
+    uint offset = (bit & 1) == 1 ? setBitsPrefixSum[threadID] : unsetBitsPrefixSum[threadID];
+    if((bit & 1) == 1) offset += histogram[0];
+
+    //data_out[offset] = value;
+    data_out[offset] = value; 
+
+
+    //data_out[threadID] = data_in[threadID];
+}

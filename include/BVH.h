@@ -2,6 +2,7 @@
 #include "Mesh.h"
 #include "GLBuffer.h"
 #include "ComputeShader.h"
+//#include "BVHNodes.h"
 
 struct Box
 {
@@ -11,13 +12,13 @@ struct Box
 
 struct LeafNode
 {
-	unsigned int code;  
+	unsigned int code;
 
-	unsigned int i0;    
-	unsigned int i1;    
-	unsigned int i2;   
+	unsigned int i0;
+	unsigned int i1;
+	unsigned int i2;
 
-	Box box;     
+	Box box;
 
 	int parent;
 
@@ -42,6 +43,7 @@ struct InternalNode {
 	unsigned int pad2;
 	unsigned int pad3;
 };
+
 
 namespace BVH
 {
@@ -82,8 +84,11 @@ namespace BVH
 		//ComputeShader _radixSort = ComputeShader("radixSort");
 		ComputeShader _computeHistogram = ComputeShader("RadixSort/computeHistogram");
 		ComputeShader _computePrefixSum = ComputeShader("RadixSort/PrefixSum/prefixSum");
-		ComputeShader _computePrefixSumAux = ComputeShader("RadixSort/PrefixSum/prefixSumAux");
+		ComputeShader _computePrefixSumAux = ComputeShader("RadixSort/PrefixSum/prefixSumBlock");
 		ComputeShader _computeUniformIncrement = ComputeShader("RadixSort/PrefixSum/uniformIncrement");
+		ComputeShader _computeBuildBuffers = ComputeShader("RadixSort/buildBuffers");
+		ComputeShader _computeApplyOffsets = ComputeShader("RadixSort/applyOffsets");
+		ComputeShader _computeCopyElements = ComputeShader("RadixSort/copyElements");
 
 		Shader shader = Shader("AABB");
 
@@ -92,10 +97,30 @@ namespace BVH
 		void _constructBounds();
 
 
-		void _buildHistogram(std::vector<unsigned int> values);
-		void _prefixSum(std::vector<unsigned int> values);
+		void _buildHistogram(GLBuffer<unsigned int>& data_in,
+							 GLBuffer<unsigned int>& histogram,
+							 const unsigned int& bitStage);
+		void _prefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+		void _prefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 
+		void _radixSort(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+		void _setBuffers(GLBuffer<unsigned int>& data_in,
+						 GLBuffer<unsigned int>& setBits,
+						 GLBuffer<unsigned int>& setBitsPrefixSum,
+						 GLBuffer<unsigned int>& unsetBits,
+						 GLBuffer<unsigned int>& unsetBitsPrefixSum,
+						 GLBuffer<unsigned int>& histogram,
+						 GLBuffer<unsigned int>& histogramPrefixSum,
+						 const unsigned int& bitStage);
 
+		void _applyOffsets(GLBuffer<unsigned int>& data_in,
+						  GLBuffer<unsigned int>& data_out,
+						  GLBuffer<unsigned int>& histogram,
+						  GLBuffer<unsigned int>& setBitsPrefixSum,
+						  GLBuffer<unsigned int>& unsetBitsPrefixSum,
+						  const unsigned int& bitStage);
+
+		void _copyElements(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 		void _destroyRecursive(Node* node);
 		std::vector<LeafNode> _getMortonCodes();
 
