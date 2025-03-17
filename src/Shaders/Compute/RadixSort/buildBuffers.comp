@@ -7,34 +7,19 @@ layout(std430, binding = 0) buffer DataBuffer
     uint data[];
 };
 
-layout(std430, binding = 1) buffer setBitBuffer
+layout(std430, binding = 1) buffer Is0Buffer
 {
-    uint setBits[];
+    uint is0[];
 };
 
-layout(std430, binding = 2) buffer unsetBitBuffer
+layout(std430, binding = 2) buffer Is1Buffer
 {
-    uint unsetBits[];
+    uint is1[];
 };
 
-layout(std430, binding = 3) buffer setBitPrefixSumBuffer
-{
-    uint setBitsPrefixSum[];
-};
-
-layout(std430, binding = 4 ) buffer unsetBitsPrefixSumBuffer
-{
-    uint unsetBitsPrefixSum[];
-};
-
-layout(std430, binding = 5) buffer histogramBuffer
+layout(std430, binding = 3) buffer HistogramBuffer
 {
     uint histogram[];
-};
-
-layout(std430, binding = 6) buffer histogramPrefixSumBuffer
-{
-    uint histogramPrefixSum[];
 };
 
 uniform uint n;
@@ -45,20 +30,9 @@ void main()
     const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= n) return;
 
-    uint bit = (data[threadID] >> bitStage) & 1;
-    setBits[threadID] = bit;
-    unsetBits[threadID] = bit ^ 1;
+    uint bucket = (data[threadID] >> bitStage) & 1;
+    is0[threadID] = bucket ^ 1;
+    is1[threadID] = bucket;
 
-    setBitsPrefixSum[threadID] = 0;
-    unsetBitsPrefixSum[threadID] = 0;
-    
-    if(threadID == 0)
-    {
-        histogram[0] = 0;
-        histogram[1] = 0;
-
-        histogramPrefixSum[0] = 0;
-        histogramPrefixSum[1] = 0;
-    }
-
+    atomicAdd(histogram[bucket], 1);
 }

@@ -2,31 +2,29 @@
 
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
-layout(std430, binding = 0) buffer dataBufferIn
+layout(std430, binding = 0) buffer DataBufferIn
 {
     uint data_in[];
 };
 
-layout(std430, binding = 1) buffer dataBufferOut
+layout(std430, binding = 1) buffer DataBufferOut
 {
     uint data_out[];
 };
 
-
-layout(std430, binding = 2) buffer histogramBuffer
+layout(std430, binding = 2) buffer RelativeOffset0Buffer
 {
-    uint histogram[];
+    uint relativeOffset_0[];
 };
 
-
-layout(std430, binding = 3) buffer setBitsPrefixSumBuffer
+layout(std430, binding = 3) buffer RelativeOffset1Buffer
 {
-    uint setBitsPrefixSum[];
+    uint relativeOffset_1[];
 };
 
-layout(std430, binding = 4) buffer unsetBitsPrefixSumBuffer
+layout(std430, binding = 4) buffer OffsetsBuffer
 {
-    uint unsetBitsPrefixSum[];
+    uint offsets[];
 };
 
 uniform uint n;
@@ -38,13 +36,17 @@ void main()
     if(threadID >= n) return;
     
     uint value = data_in[threadID];
-    uint bit = (value >> bitStage) & 1;
-
-    uint offset = (bit & 1) == 1 ? setBitsPrefixSum[threadID] : unsetBitsPrefixSum[threadID];
-    if((bit & 1) == 1) offset += histogram[0];
+    uint bucket = (value >> bitStage) & 1;
+    uint offset = offsets[bucket];
+    if(bucket == 0) offset += relativeOffset_0[threadID];
+    if(bucket == 1) offset += relativeOffset_1[threadID];
+    data_out[offset] = data_in[threadID];
+    
+    //uint offset = (bit & 1) == 1 ? setBitsPrefixSum[threadID] : unsetBitsPrefixSum[threadID];
+    //if((bit & 1) == 1) offset += histogram[0];
 
     //data_out[offset] = value;
-    data_out[offset] = value; 
+    //data_out[offset] = value; 
 
 
     //data_out[threadID] = data_in[threadID];

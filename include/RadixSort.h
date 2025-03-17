@@ -15,19 +15,28 @@ private:
 	ComputeShader m_applyOffsets		= ComputeShader("RadixSort/applyOffsets");
 	ComputeShader m_copyElements		= ComputeShader("RadixSort/copyElements");
 
+	ComputeShader m_prefixSumBlock2d	= ComputeShader("RadixSort/PrefixSum2D/prefixSumBlock");
+	ComputeShader m_prefixSum2d			= ComputeShader("RadixSort/PrefixSum2D/prefixSum");
+	ComputeShader m_uniformIncrement2d	= ComputeShader("RadixSort/PrefixSum2D/uniformIncrement");
 private:
 	const unsigned int m_n;
 
 	GLBuffer<unsigned int>& m_data;
 
 	std::unique_ptr<GLBuffer<unsigned int>> m_temp;
-	std::unique_ptr<GLBuffer<unsigned int>> m_setBits;
-	std::unique_ptr<GLBuffer<unsigned int>> m_unsetBits;
 
-	std::unique_ptr<GLBuffer<unsigned int>> m_setBitsPrefixSum;
-	std::unique_ptr<GLBuffer<unsigned int>> m_unsetBitsPrefixSum;
+	std::unique_ptr<GLBuffer<unsigned int>> m_is0;
+	std::unique_ptr<GLBuffer<unsigned int>> m_is1;
+
+	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffset_0;
+	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffset_1;
+
+	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffsets;
+	std::unique_ptr<GLBuffer<unsigned int>> m_isBelonging;
 
 	GLBuffer<unsigned int> m_histogram = GLBuffer<unsigned int>
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 2, GL_STATIC_DRAW);
+	GLBuffer<unsigned int> m_offsets = GLBuffer<unsigned int>
 		(GL_SHADER_STORAGE_BUFFER, nullptr, 2, GL_STATIC_DRAW);
 
 private:
@@ -38,6 +47,10 @@ private:
 
 	void _prefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 	void _prefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+
+	void _2dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+	void _2dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+	
 public:
 	RadixSort(GLBuffer<unsigned int>& data);
 	void sort();

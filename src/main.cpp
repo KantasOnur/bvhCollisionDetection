@@ -6,10 +6,12 @@
 #include <optix_function_table_definition.h>
 #include <optix_stubs.h>
 
+
 extern "C" {
     _declspec(dllexport) DWORD NvOptimusEnablement = 1;
     _declspec(dllexport) int AmdPowerXpressRequestHighPerformance = 1;
 }
+
 
 int main(void)
 {

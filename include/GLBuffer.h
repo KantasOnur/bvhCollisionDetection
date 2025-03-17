@@ -48,6 +48,10 @@ public:
 		return data;
 	}
 
+	void clearBuffer(T val)
+	{
+		glClearNamedBufferData(m_id, GL_R32UI, GL_RED, GL_UNSIGNED_INT, &val);
+	}
 	void updateBuffer(T* data, const size_t& n = m_n)
 	{
 		if (n > m_n) {
@@ -68,6 +72,11 @@ public:
 	}
 
 	unsigned int getID()
+	{
+		return m_id;
+	}
+
+	unsigned int& getIDByRef()
 	{
 		return m_id;
 	}
