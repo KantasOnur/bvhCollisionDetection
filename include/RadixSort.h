@@ -22,14 +22,7 @@ private:
 	const unsigned int m_n;
 
 	GLBuffer<unsigned int>& m_data;
-
 	std::unique_ptr<GLBuffer<unsigned int>> m_temp;
-
-	std::unique_ptr<GLBuffer<unsigned int>> m_is0;
-	std::unique_ptr<GLBuffer<unsigned int>> m_is1;
-
-	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffset_0;
-	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffset_1;
 
 	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffsets;
 	std::unique_ptr<GLBuffer<unsigned int>> m_isBelonging;

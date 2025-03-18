@@ -12,17 +12,12 @@ layout(std430, binding = 1) buffer DataBufferOut
     uint data_out[];
 };
 
-layout(std430, binding = 2) buffer RelativeOffset0Buffer
+layout(std430, binding = 2) buffer RelativeOffsetsBuffer
 {
-    uint relativeOffset_0[];
+    uint relativeOffsets[];
 };
 
-layout(std430, binding = 3) buffer RelativeOffset1Buffer
-{
-    uint relativeOffset_1[];
-};
-
-layout(std430, binding = 4) buffer OffsetsBuffer
+layout(std430, binding = 3) buffer OffsetsBuffer
 {
     uint offsets[];
 };
@@ -37,17 +32,7 @@ void main()
     
     uint value = data_in[threadID];
     uint bucket = (value >> bitStage) & 1;
-    uint offset = offsets[bucket];
-    if(bucket == 0) offset += relativeOffset_0[threadID];
-    if(bucket == 1) offset += relativeOffset_1[threadID];
+    uint offset = offsets[bucket] + relativeOffsets[bucket * n + threadID];
+
     data_out[offset] = data_in[threadID];
-    
-    //uint offset = (bit & 1) == 1 ? setBitsPrefixSum[threadID] : unsetBitsPrefixSum[threadID];
-    //if((bit & 1) == 1) offset += histogram[0];
-
-    //data_out[offset] = value;
-    //data_out[offset] = value; 
-
-
-    //data_out[threadID] = data_in[threadID];
 }

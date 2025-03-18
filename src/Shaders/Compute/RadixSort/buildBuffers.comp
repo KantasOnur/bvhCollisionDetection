@@ -7,17 +7,12 @@ layout(std430, binding = 0) buffer DataBuffer
     uint data[];
 };
 
-layout(std430, binding = 1) buffer Is0Buffer
+layout(std430, binding = 1) buffer IsBelongingBuffer
 {
-    uint is0[];
+    uint isBelonging[];
 };
 
-layout(std430, binding = 2) buffer Is1Buffer
-{
-    uint is1[];
-};
-
-layout(std430, binding = 3) buffer HistogramBuffer
+layout(std430, binding = 2) buffer HistogramBuffer
 {
     uint histogram[];
 };
@@ -31,8 +26,6 @@ void main()
     if(threadID >= n) return;
 
     uint bucket = (data[threadID] >> bitStage) & 1;
-    is0[threadID] = bucket ^ 1;
-    is1[threadID] = bucket;
-
+    isBelonging[bucket * n + threadID] = 1;
     atomicAdd(histogram[bucket], 1);
 }

@@ -40,7 +40,7 @@ BVH::BVH::BVH(const unsigned int& entityID)
 
 	int n = pow(2,20);
 	std::mt19937 gen;
-	std::uniform_int_distribution<unsigned int> dist(0, 10);
+	std::uniform_int_distribution<unsigned int> dist(0, -1);
 	std::vector<unsigned int> values(n); //= {7, 14, 4, 1};
 
 	//std::cout << "values: " << std::endl;
