@@ -20,5 +20,5 @@ void main()
     const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= n) return;
     const uint val = data_in[threadID];
-    atomicAdd(histogram[(val >> bitStage) & 1], 1);
+    atomicAdd(histogram[(val >> bitStage) & 3], 1);
 }

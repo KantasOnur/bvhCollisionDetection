@@ -18,6 +18,10 @@ private:
 	ComputeShader m_prefixSumBlock2d	= ComputeShader("RadixSort/PrefixSum2D/prefixSumBlock");
 	ComputeShader m_prefixSum2d			= ComputeShader("RadixSort/PrefixSum2D/prefixSum");
 	ComputeShader m_uniformIncrement2d	= ComputeShader("RadixSort/PrefixSum2D/uniformIncrement");
+
+	ComputeShader m_prefixSumBlock4d = ComputeShader("RadixSort/PrefixSum4D/prefixSumBlock");
+	ComputeShader m_prefixSum4d = ComputeShader("RadixSort/PrefixSum4D/prefixSum");
+	ComputeShader m_uniformIncrement4d = ComputeShader("RadixSort/PrefixSum4D/uniformIncrement");
 private:
 	const unsigned int m_n;
 
@@ -28,9 +32,9 @@ private:
 	std::unique_ptr<GLBuffer<unsigned int>> m_isBelonging;
 
 	GLBuffer<unsigned int> m_histogram = GLBuffer<unsigned int>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 2, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4, GL_STATIC_DRAW);
 	GLBuffer<unsigned int> m_offsets = GLBuffer<unsigned int>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 2, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4, GL_STATIC_DRAW);
 
 private:
 	void _buildBuffers(const unsigned int& bitStage);
@@ -44,6 +48,8 @@ private:
 	void _2dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 	void _2dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 	
+	void _4dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
+	void _4dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 public:
 	RadixSort(GLBuffer<unsigned int>& data);
 	void sort();

@@ -31,7 +31,7 @@ void main()
     if(threadID >= n) return;
     
     uint value = data_in[threadID];
-    uint bucket = (value >> bitStage) & 1;
+    uint bucket = (value >> bitStage) & 3;
     uint offset = offsets[bucket] + relativeOffsets[bucket * n + threadID];
 
     data_out[offset] = data_in[threadID];

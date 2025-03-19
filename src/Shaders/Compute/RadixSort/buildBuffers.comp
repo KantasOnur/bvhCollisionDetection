@@ -25,7 +25,7 @@ void main()
     const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= n) return;
 
-    uint bucket = (data[threadID] >> bitStage) & 1;
+    uint bucket = (data[threadID] >> bitStage) & 3;
     isBelonging[bucket * n + threadID] = 1;
     atomicAdd(histogram[bucket], 1);
 }

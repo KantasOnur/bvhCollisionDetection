@@ -1,0 +1,76 @@
+#version 430 core
+
+layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer InputBuffer
+{
+	readonly uint data_in[];
+};
+
+layout(std430, binding = 1) buffer OutputBuffer
+{
+	writeonly uint data_out[];
+};
+
+layout(std430, binding = 2) buffer BlockSumsBuffer
+{
+    writeonly uint sums[];
+};
+
+uniform int n;
+uniform int n_incr;
+shared uint smem[256];
+void main()
+{
+    uint th_id = gl_LocalInvocationID.x;
+    uint y = gl_WorkGroupID.y;
+    uint x = gl_WorkGroupID.x;
+
+    uint rowStart = y * n;
+
+    uint i0 = 2 * th_id;
+    uint i1 = i0 + 1;
+
+    uint i0_g = 2 * gl_GlobalInvocationID.x;
+    uint i1_g = i0_g + 1;
+
+    if (i0_g >= n || i1_g >= n) return;
+
+    smem[i0] = data_in[rowStart + i0_g];
+    smem[i1] = data_in[rowStart + i1_g];
+
+    int offset = 1;
+    for (int d = n >> 1; d > 0; d >>= 1) {
+        barrier();
+        if (th_id < d) {
+            uint ai = offset * (i0 + 1) - 1;
+            uint bi = offset * (i1 + 1) - 1;
+            smem[bi] += smem[ai];
+        }
+        offset <<= 1; 
+    }
+
+    if (th_id == 0)
+    {
+        sums[y * n_incr + x] = smem[255];
+        smem[255] = 0;
+    }
+
+    for (int d = 1; d < n; d <<= 1) {
+        offset >>= 1;
+        barrier();
+        if (th_id < d) {
+            uint ai = offset * (i0 + 1) - 1;
+            uint bi = offset * (i1 + 1) - 1;
+
+            uint t = smem[ai];
+            smem[ai] = smem[bi];
+            smem[bi] += t;
+        }
+    }
+
+    barrier();
+
+    data_out[rowStart + i0_g] = smem[i0];
+    data_out[rowStart + i1_g] = smem[i1];
+}
