@@ -1,0 +1,76 @@
+#version 430 core
+
+layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer InputBuffer
+{
+	 readonly uint data_in[];
+};
+
+layout(std430, binding = 1) buffer OutputBuffer
+{
+	writeonly uint data_out[];
+};
+
+#define NUM_BANKS 16
+#define LOG_NUM_BANKS 4
+#define CONFLICT_FREE_OFFSET(n)((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
+
+uniform int n;
+shared uint smem[256 + 16];
+void main()
+{
+    uint th_id = gl_LocalInvocationID.x;
+    uint y = gl_WorkGroupID.y;
+
+    uint rowStart = y * n;
+
+    uint ai = th_id;
+    uint bi = th_id + (n/2);
+
+    uint bankOffset0 = CONFLICT_FREE_OFFSET(ai);
+    uint bankOffset1 = CONFLICT_FREE_OFFSET(bi);
+
+    if (ai >= n || bi >= n) return;
+
+    smem[ai + bankOffset0] = data_in[rowStart + ai];
+    smem[bi + bankOffset1] = data_in[rowStart + bi];
+
+    int offset = 1;
+    for (int d = n >> 1; d > 0; d >>= 1) {
+        barrier();
+        if (th_id < d) {
+            ai = offset * (2 * th_id + 1) - 1;
+            bi = offset * (2 * th_id + 2) - 1;
+            
+            ai += CONFLICT_FREE_OFFSET(ai);
+            bi += CONFLICT_FREE_OFFSET(bi);
+
+            smem[bi] += smem[ai];
+        }
+        offset <<= 1; 
+    }
+
+    if (th_id == 0) smem[n - 1 + CONFLICT_FREE_OFFSET(n-1)] = 0;
+
+    for (int d = 1; d < n; d <<= 1) {
+        offset >>= 1;
+        barrier();
+        if (th_id < d) {
+            ai = offset * (2 * th_id + 1) - 1;
+            bi = offset * (2 * th_id + 2) - 1;
+
+            ai += CONFLICT_FREE_OFFSET(ai);
+            bi += CONFLICT_FREE_OFFSET(bi);
+
+            uint t = smem[ai];
+            smem[ai] = smem[bi];
+            smem[bi] += t;
+        }
+    }
+
+    barrier();
+
+    data_out[rowStart + ai] = smem[ai + bankOffset0];
+    data_out[rowStart + bi] = smem[bi + bankOffset1];
+}

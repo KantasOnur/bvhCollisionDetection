@@ -28,3 +28,7 @@ Entity& EntityManager::getEntity(const unsigned int& id) const
 	return *m_idToEntity.at(id);
 }
 
+unsigned int EntityManager::getTriangleCount(const unsigned int& id) const
+{
+	return m_idToEntity.at(id)->getTriangleCount();
+}

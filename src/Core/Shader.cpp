@@ -5,6 +5,7 @@
 #include <regex>
 
 Shader::Shader(const std::string& shader)
+    : shaderName(shader)
 {
 
     const std::string vertexShaderPath = std::string(SRC) + "/Shaders/" + shader + ".vert";
@@ -17,6 +18,7 @@ Shader::Shader(const std::string& shader)
 
 Shader::Shader(const std::string& shaderPath, const GLenum& type)
 {
+    shaderName = shaderPath;
     unsigned int shaderID = createShader(type, shaderPath);
     createProgram({ shaderID });
 }
@@ -46,7 +48,7 @@ static std::string processShaderFile(const std::string& sourcePath)
     std::regex includeRegex("(#include <([a-zA-Z]+)>\n)");
     for (std::smatch sm; std::regex_search(source, sm, includeRegex);)
     {
-        std::string includeFileSourcePath = std::string(SRC) + sm[2].str() + ".glsl";
+        std::string includeFileSourcePath = std::string(SRC) + "/Shaders/include/" + sm[2].str() + ".glsl";
         std::string includeFileSource = processShaderFile(includeFileSourcePath);
         source.replace(sm.position(0), sm.length(0), includeFileSource);
     }
@@ -88,6 +90,7 @@ void Shader::createProgram(const std::vector<unsigned int>& shaders)
     if (!success) {
         char log[512];
         glGetShaderInfoLog(program, 512, NULL, log);
+        std::cout << this << std::endl;
         std::cerr << "Error compiling program: " << log << std::endl;
         return;
     }

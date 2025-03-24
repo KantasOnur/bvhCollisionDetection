@@ -19,7 +19,7 @@ private:
 	float m_scale = 1.0f;
 
 	AABB m_aabb;
-	std::unique_ptr<BVH::BVH> m_bvh;
+	std::unique_ptr<BVH> m_bvh;
 
 	Shader m_shader = Shader("Basic");
 

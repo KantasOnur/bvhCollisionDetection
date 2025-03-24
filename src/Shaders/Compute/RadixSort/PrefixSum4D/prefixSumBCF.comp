@@ -1,0 +1,96 @@
+#version 430 core
+
+layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
+
+layout(std430, binding = 0) buffer InputBuffer
+{
+	 readonly uint data_in[];
+};
+
+layout(std430, binding = 1) buffer OutputBuffer
+{
+	writeonly uint data_out[];
+};
+
+layout(std430, binding = 2) buffer BlockSumsBuffer
+{
+    writeonly uint sums[];
+};
+
+
+#define NUM_BANKS 16
+#define LOG_NUM_BANKS 4
+#define CONFLICT_FREE_OFFSET(n) ((n) >> NUM_BANKS + (n) >> (2 * LOG_NUM_BANKS))
+
+uniform int n;        
+uniform int n_incr;
+
+shared uint smem[256 + 16]; 
+
+void main()
+{
+    uint th_id = gl_LocalInvocationID.x;
+    uint x = gl_WorkGroupID.x;
+    uint y = gl_WorkGroupID.y;
+
+    uint rowStart  = y * n; 
+    uint blockOffset = x * 256;
+
+    uint ai = th_id;
+    uint bi = th_id + (256/2);
+
+
+    if (blockOffset + ai >= n || blockOffset + bi >= n) return;
+
+    uint bankOffset0 = CONFLICT_FREE_OFFSET(ai);
+    uint bankOffset1 = CONFLICT_FREE_OFFSET(bi);
+
+    smem[ai + bankOffset0] = data_in[rowStart + blockOffset + ai];
+    smem[bi + bankOffset1] = data_in[rowStart + blockOffset + bi];
+
+    int offset = 1;
+    for (int d = (256 >> 1); d > 0; d >>= 1)
+    {
+        barrier();
+        if (th_id < d)
+        {
+            ai = offset * (2 * th_id + 1) - 1;
+            bi = offset * (2 * th_id + 2) - 1;
+
+            ai += CONFLICT_FREE_OFFSET(ai);
+            bi += CONFLICT_FREE_OFFSET(bi);
+
+            smem[bi] += smem[ai];
+        }
+        offset <<= 1; 
+    }
+
+    if (th_id == 0)
+    {
+        sums[y * n_incr + x] = smem[255 + CONFLICT_FREE_OFFSET(255)];
+        smem[255 + CONFLICT_FREE_OFFSET(255)] = 0;
+    }
+
+    for (int d = 1; d < 256; d <<= 1)
+    {
+        offset >>= 1;
+        barrier();
+        if (th_id < d)
+        {
+            ai = offset * (2 * th_id + 1) - 1;
+            bi = offset * (2 * th_id + 2) - 1;
+
+            ai += CONFLICT_FREE_OFFSET(ai);
+            bi += CONFLICT_FREE_OFFSET(bi);
+
+            uint t = smem[ai];
+            smem[ai] = smem[bi];
+            smem[bi] += t;
+        }
+    }
+
+    barrier();
+
+    data_out[rowStart + blockOffset + ai] = smem[ai + bankOffset0];
+    data_out[rowStart + blockOffset + bi] = smem[bi + bankOffset1];
+}

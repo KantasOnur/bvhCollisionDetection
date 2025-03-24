@@ -12,54 +12,85 @@
         accumulatedTimes[key] += std::chrono::duration<double, std::milli>(end - start).count(); \
     }
 
+
+static unsigned int getNearestPowerof2(const unsigned int& x)
+{
+	unsigned int msb = 31 - std::countl_zero(x);
+	unsigned int cnt = std::popcount(x);
+	if (cnt == 1) return x;
+	return  1 << 1 + msb;
+}
+/*
 RadixSort::RadixSort(GLBuffer<unsigned int>& data)
 	: m_data(data), m_n(data.getSize())
+
 {
 	m_temp = std::make_unique<GLBuffer<unsigned int>>
 		(GL_SHADER_STORAGE_BUFFER, nullptr, m_n, GL_STATIC_DRAW);
-
+	
+	
 	m_relativeOffsets = std::make_unique<GLBuffer<unsigned int>>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * m_n, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * getNearestPowerof2(m_n), GL_STATIC_DRAW);
 
 	m_isBelonging = std::make_unique<GLBuffer<unsigned int>>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * m_n, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * getNearestPowerof2(m_n), GL_STATIC_DRAW);
 
 }
+*/
+RadixSort::RadixSort(std::shared_ptr<GLBuffer<LeafNode>> leafNodes)
+	: m_data(leafNodes), m_n(leafNodes->getSize())
+{
 
+	m_temp = std::make_unique<GLBuffer<LeafNode>>
+		(GL_SHADER_STORAGE_BUFFER, nullptr, m_n, GL_STATIC_DRAW);
+
+
+	m_relativeOffsets = std::make_unique<GLBuffer<unsigned int>>
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * getNearestPowerof2(m_n), GL_STATIC_DRAW);
+
+	m_isBelonging = std::make_unique<GLBuffer<unsigned int>>
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * getNearestPowerof2(m_n), GL_STATIC_DRAW);
+
+}
 void RadixSort::sort()
 {
 	std::unordered_map<std::string, double> accumulatedTimes;
-	
+
+
 	for (unsigned int bitStage = 0; bitStage < 32; bitStage += 2)
 	{
-		//_buildBuffers(bitStage);
-		//_2dPrefixSum(*m_isBelonging, *m_relativeOffsets);
-		//_prefixSum(m_histogram, m_offsets);
-		//_applyOffsets(bitStage);
+		/*
 		TIME_AND_ACCUMULATE(_buildBuffers, "_buildBuffers", bitStage);
-		TIME_AND_ACCUMULATE(_4dPrefixSum, "_4dPrefixSum", *m_isBelonging, *m_relativeOffsets);
+		TIME_AND_ACCUMULATE(_4dPrefixSum, "_4dPrefixSum", m_isBelonging, m_relativeOffsets);
 		TIME_AND_ACCUMULATE(_prefixSum, "_prefixSum", m_histogram, m_offsets);
 		TIME_AND_ACCUMULATE(_applyOffsets, "_applyOffsets", bitStage);
+		*/
+		_buildBuffers(bitStage);
+		_4dPrefixSum(*m_isBelonging, *m_relativeOffsets);
+		_prefixSum(m_histogram, m_offsets);
+		_applyOffsets(bitStage);
 
-		std::swap(m_data.getIDByRef(), m_temp->getIDByRef());
+		std::swap(m_data->getIDByRef(), m_temp->getIDByRef());
 
 		m_histogram.clearBuffer(0);
 		m_isBelonging->clearBuffer(0);
 		m_relativeOffsets->clearBuffer(0);
 		m_offsets.clearBuffer(0);
 	}
-
+	//auto a = m_data.retrieveBuffer();
 	/*
-	auto a = m_data.retrieveBuffer();
-	for (int i = 0; i < a.size(); ++i)
-	{
-		std::cout << a[i] << std::endl;
-	}
-	*/
-	for (auto i : accumulatedTimes)
+	for (auto& i : accumulatedTimes)
 	{
 		std::cout << i.first << " " << i.second << " ms" << std::endl;
 	}
+	*/
+	/*
+	auto a = m_data->retrieveBuffer();
+	for (int i = 0; i < a.size(); ++i)
+	{
+		std::cout << a[i].code << std::endl;
+	}
+	*/
 }
 
 void RadixSort::_buildBuffers(const unsigned int& bitStage)
@@ -67,12 +98,13 @@ void RadixSort::_buildBuffers(const unsigned int& bitStage)
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
 
-	m_data.sendToGPU(0);
+	m_data->sendToGPU(0);
 	m_isBelonging->sendToGPU(1);
 	m_histogram.sendToGPU(2);
 
 	m_buildBuffers.bind();
 	m_buildBuffers.setUInt("bitStage", bitStage);
+	m_buildBuffers.setUInt("n_padded", getNearestPowerof2(m_n));
 	m_buildBuffers.setUInt("n", m_n);
 	m_buildBuffers.unbind();
 
@@ -82,7 +114,7 @@ void RadixSort::_buildBuffers(const unsigned int& bitStage)
 void RadixSort::_computeHistogram(const unsigned int& bitStage)
 {
 	m_histogram.sendToGPU(0);
-	m_data.sendToGPU(1);
+	m_data->sendToGPU(1);
 
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
@@ -100,13 +132,14 @@ void RadixSort::_applyOffsets(const unsigned int& bitStage)
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / 1024;
 
-	m_data.sendToGPU(0);
+	m_data->sendToGPU(0);
 	m_temp->sendToGPU(1);
 	m_relativeOffsets->sendToGPU(2);
 	m_offsets.sendToGPU(3);
 
 	m_applyOffsets.bind();
 	m_applyOffsets.setUInt("n", m_n);
+	m_applyOffsets.setUInt("n_padded", getNearestPowerof2(m_n));
 	m_applyOffsets.setUInt("bitStage", bitStage);
 	m_applyOffsets.unbind();
 	m_applyOffsets.dispatch(numBlocks, 1, 1);
@@ -117,7 +150,7 @@ void RadixSort::_copyElements()
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
 
-	m_data.sendToGPU(0);
+	m_data->sendToGPU(0);
 	m_temp->sendToGPU(1);
 
 	m_copyElements.bind();
@@ -227,12 +260,12 @@ void RadixSort::_2dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned 
 
 void RadixSort::_4dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out)
 {
-	unsigned int n = data_in.getSize() / 4;
+	unsigned int n =  data_in.getSize() / 4;
 	unsigned int numThreads = 128;
 	unsigned int numBlocksX = (numThreads + (n / 2) - 1) / numThreads;
 	unsigned int numBlocksY = 4;
 
-	if (numBlocksX == 1) return _2dPrefixSumBlock(data_in, data_out);
+	if (numBlocksX == 1) return _4dPrefixSumBlock(data_in, data_out);
 
 	GLBuffer<unsigned int> sums = GLBuffer<unsigned int>
 		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * numBlocksX, GL_STATIC_DRAW);
@@ -243,28 +276,32 @@ void RadixSort::_4dPrefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned 
 	data_out.sendToGPU(1);
 	sums.sendToGPU(2);
 
-	m_prefixSum2d.bind();
-	m_prefixSum2d.setInt("n", n);
-	m_prefixSum2d.setInt("n_incr", numBlocksX);
-	m_prefixSum2d.unbind();
-	m_prefixSum2d.dispatch(numBlocksX, numBlocksY, 1);
+	m_prefixSum4d.bind();
+	m_prefixSum4d.setInt("n", n);
+	m_prefixSum4d.setInt("n_incr", numBlocksX);
+	m_prefixSum4d.unbind();
+	m_prefixSum4d.dispatch(numBlocksX, numBlocksY, 1);
 
+	//auto a = data_out.retrieveBuffer();
 	if (numBlocksX > 256) _4dPrefixSum(sums, incr);
 	else _4dPrefixSumBlock(sums, incr);
+	//auto b = incr.retrieveBuffer();
 
 	numThreads = 256;
 	numBlocksX = (numThreads + n - 1) / numThreads;
 	incr.sendToGPU(0);
 	data_out.sendToGPU(1);
-	m_uniformIncrement2d.bind();
-	m_uniformIncrement2d.setInt("n", n);
-	m_uniformIncrement2d.setInt("n_incr", numBlocksX);
-	m_uniformIncrement2d.unbind();
-	m_uniformIncrement2d.dispatch(numBlocksX, 4, 1);
+	m_uniformIncrement4d.bind();
+	m_uniformIncrement4d.setInt("n", n);
+	m_uniformIncrement4d.setInt("n_incr", numBlocksX);
+	m_uniformIncrement4d.unbind();
+	m_uniformIncrement4d.dispatch(numBlocksX, 4, 1);
+	
 }
 
 void RadixSort::_4dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out)
 {
+	unsigned int n_padded = getNearestPowerof2(data_in.getSize()) / 4;
 	unsigned int n = data_in.getSize() / 4;
 	unsigned int numThreads = 128;
 	unsigned int numBlocksX = 1;
@@ -272,8 +309,9 @@ void RadixSort::_4dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsi
 
 	data_in.sendToGPU(0);
 	data_out.sendToGPU(1);
-	m_prefixSumBlock2d.bind();
-	m_prefixSumBlock2d.setInt("n", n);
-	m_prefixSumBlock2d.unbind();
-	m_prefixSumBlock2d.dispatch(numBlocksX, numBlocksY, 1);
+	m_prefixSumBlock4d.bind();
+	m_prefixSumBlock4d.setInt("n_padded", n_padded);
+	m_prefixSumBlock4d.setInt("n", n);
+	m_prefixSumBlock4d.unbind();
+	m_prefixSumBlock4d.dispatch(numBlocksX, numBlocksY, 1);
 }

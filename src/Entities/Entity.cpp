@@ -10,7 +10,7 @@ Entity::Entity(const std::string& obj, const glm::vec3& position)
 	//m_id = m_instance++;
 	_updateModelMatrix();
 	EntityManager::getInstance().addEntity(m_id, this); // every entity needs to be dynamically allocated
-	m_bvh = std::make_unique<BVH::BVH>(m_id);
+	m_bvh = std::make_unique<BVH>(m_id);
 }
 
 void Entity::draw(const Camera& camera)

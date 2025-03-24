@@ -1,4 +1,6 @@
+#pragma once
 #include <glm/glm.hpp>
+
 
 struct Box
 {

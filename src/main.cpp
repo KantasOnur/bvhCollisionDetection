@@ -15,12 +15,13 @@ extern "C" {
 
 int main(void)
 {
-
+    /*
     if (optixInit() != OPTIX_SUCCESS)
     {
         std::cout << "failed to initialize optix" << std::endl;
         exit(1);
     }
+    */
     Game game;
     game.run();
     return 0;

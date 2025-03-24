@@ -8,6 +8,7 @@ class Shader
 {
 protected:
     unsigned int id_;
+    std::string shaderName;
 private:
     unsigned int createShader(GLenum type, const std::string& sourcePath);
     void createProgram(const std::vector<unsigned int>& shaders);

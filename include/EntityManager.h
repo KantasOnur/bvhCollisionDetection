@@ -20,4 +20,5 @@ public:
 	void removeEntity(const unsigned int& id);
 
 	Entity& getEntity(const unsigned int& id) const;
+	unsigned int getTriangleCount(const unsigned int& id) const;
 };

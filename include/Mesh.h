@@ -25,4 +25,5 @@ public:
     Mesh(const std::string& obj);
     ~Mesh();
     virtual void draw(const Camera& camera) = 0;
+    unsigned int getTriangleCount() const { return m_indiciesSSBO.getSize() / 3; };
 };

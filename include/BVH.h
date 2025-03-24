@@ -2,135 +2,46 @@
 #include "Mesh.h"
 #include "GLBuffer.h"
 #include "ComputeShader.h"
-//#include "BVHNodes.h"
+#include "BVHNodes.h"
+#include "RadixSort.h"
 
-struct Box
+
+
+
+
+class BVH : public Mesh
 {
-	glm::vec4 min;
-	glm::vec4 max;
-};
-
-struct LeafNode
-{
-	unsigned int code;
-
-	unsigned int i0;
-	unsigned int i1;
-	unsigned int i2;
-
-	Box box;
-
-	int parent;
-
-	unsigned int pad0;
-	unsigned int pad1;
-	unsigned int pad2;
-
-};
-
-struct InternalNode {
-	unsigned int start;             // offset 0
-	unsigned int end;               // offset 4
-	unsigned int left;              // offset 8
-	unsigned int right;             // offset 12
-	int parent = -1;			// offset 16
-	unsigned is_left_internal = 1;			// offset 20 (4 bytes)
-	unsigned is_right_internal = 1;		// offset 24 (4 bytes)
-	unsigned int pad0;              // padding: offset 28-32 (4 bytes)
-	Box box;						// offset 32, size 32 bytes (vec4 min & vec4 max)
-	unsigned int count_arrival = 0;     // offset 64, size 4 bytes
-	unsigned int pad1;              // padding: offset 68-80 (12 bytes total, could be three uints)
-	unsigned int pad2;
-	unsigned int pad3;
-};
-
-
-namespace BVH
-{
-
-	constexpr int maxPrimitives = 10;
-
-	struct Node
-	{
-		unsigned int startIndex;
-		unsigned int endIndex;
-		Node* left;
-		Node* right;
-
-	};
-
-
-
-	class BVH : public Mesh
-	{
-	private:
-		Node* m_hierarchy = nullptr;
+private:
 		
-		// Dont understand why I cant initialize GLBuffer later.
-		// Hacky but it works.
-		std::unique_ptr<GLBuffer<LeafNode>> m_leafNodes = nullptr;
-		std::unique_ptr<GLBuffer<InternalNode>> m_internalNodes = nullptr;
+	// Dont understand why I cant initialize GLBuffer later.
+	// Hacky but it works.
+	std::shared_ptr<GLBuffer<LeafNode>> m_leafNodes = nullptr;
+	std::unique_ptr<GLBuffer<InternalNode>> m_internalNodes = nullptr;
+	std::unique_ptr<RadixSort> m_sorter = nullptr;
+
+	unsigned int m_entityID;
+	unsigned int m_numLeaves;
+	unsigned int m_numInternals;
+
+private:
+	ComputeShader _computeMortonCodes = ComputeShader("computeMortonCodes");
+	ComputeShader _computeBounds = ComputeShader("computeBounds");
+	ComputeShader _computeInternalsNodes = ComputeShader("computeInternalNodes");
 
 
-		unsigned int m_entityID;
-		unsigned int m_numLeaves;
-		unsigned int m_numInternals;
 
-	private:
-		ComputeShader _computeMortonCodes = ComputeShader("computeMortonCodes");
-		ComputeShader _computeBounds = ComputeShader("computeBounds");
-		ComputeShader _computeInternalsNodes = ComputeShader("computeInternalNodes");
+	Shader shader = Shader("AABB");
 
-		//ComputeShader _radixSort = ComputeShader("radixSort");
-		ComputeShader _computeHistogram = ComputeShader("RadixSort/computeHistogram");
-		ComputeShader _computePrefixSum = ComputeShader("RadixSort/PrefixSum/prefixSum");
-		ComputeShader _computePrefixSumAux = ComputeShader("RadixSort/PrefixSum/prefixSumBlock");
-		ComputeShader _computeUniformIncrement = ComputeShader("RadixSort/PrefixSum/uniformIncrement");
-		ComputeShader _computeBuildBuffers = ComputeShader("RadixSort/buildBuffers");
-		ComputeShader _computeApplyOffsets = ComputeShader("RadixSort/applyOffsets");
-		ComputeShader _computeCopyElements = ComputeShader("RadixSort/copyElements");
+	void _constructLeafNodes();
+	void _constructInternalNodes();
+	void _constructBounds();
 
-		Shader shader = Shader("AABB");
+	void _getMortonCodes();
 
-		void _constructLeafNodes();
-		void _constructInternalNodes();
-		void _constructBounds();
-
-
-		void _buildHistogram(GLBuffer<unsigned int>& data_in,
-							 GLBuffer<unsigned int>& histogram,
-							 const unsigned int& bitStage);
-		void _prefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
-		void _prefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
-
-		void _radixSort(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
-		void _setBuffers(GLBuffer<unsigned int>& data_in,
-						 GLBuffer<unsigned int>& setBits,
-						 GLBuffer<unsigned int>& setBitsPrefixSum,
-						 GLBuffer<unsigned int>& unsetBits,
-						 GLBuffer<unsigned int>& unsetBitsPrefixSum,
-						 GLBuffer<unsigned int>& histogram,
-						 GLBuffer<unsigned int>& histogramPrefixSum,
-						 const unsigned int& bitStage);
-
-		void _applyOffsets(GLBuffer<unsigned int>& data_in,
-						  GLBuffer<unsigned int>& data_out,
-						  GLBuffer<unsigned int>& histogram,
-						  GLBuffer<unsigned int>& setBitsPrefixSum,
-						  GLBuffer<unsigned int>& unsetBitsPrefixSum,
-						  const unsigned int& bitStage);
-
-		void _copyElements(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
-		void _destroyRecursive(Node* node);
-		std::vector<LeafNode> _getMortonCodes();
-
-		void drawRecursive(const Camera& camera, const unsigned int depth, 
-			const std::vector<InternalNode>& nodes, const unsigned int currentNode);
-	public:
-		BVH(const unsigned int& id);
-		~BVH();
-		void draw(const Camera& camera) override;
-	};
-}
-
-
+	void drawRecursive(const Camera& camera, const unsigned int depth, 
+	const std::vector<InternalNode>& nodes, const unsigned int currentNode);
+public:
+	BVH(const unsigned int& id);
+	~BVH();
+	void draw(const Camera& camera) override;
+};
