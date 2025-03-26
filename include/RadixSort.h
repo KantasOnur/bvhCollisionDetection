@@ -28,22 +28,24 @@ private:
 
 	const unsigned int m_n;
 
-	std::shared_ptr<GLBuffer<LeafNode>> m_data;
 	std::unique_ptr<GLBuffer<LeafNode>> m_temp;
 
 	std::unique_ptr<GLBuffer<unsigned int>> m_relativeOffsets;
 	std::unique_ptr<GLBuffer<unsigned int>> m_isBelonging;
 
 	GLBuffer<unsigned int> m_histogram = GLBuffer<unsigned int>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 16, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4, GL_STATIC_DRAW);
 	GLBuffer<unsigned int> m_offsets = GLBuffer<unsigned int>
-		(GL_SHADER_STORAGE_BUFFER, nullptr, 16, GL_STATIC_DRAW);
+		(GL_SHADER_STORAGE_BUFFER, nullptr, 4, GL_STATIC_DRAW);
 
 private:
-	void _buildBuffers(const unsigned int& bitStage);
-	void _computeHistogram(const unsigned int& bitStage);
-	void _applyOffsets(const unsigned int& bitStage);
-	void _copyElements();
+	void _buildBuffers(GLBuffer<LeafNode>& leafNodes,
+		const unsigned int& bitStage);
+	void _computeHistogram(GLBuffer<LeafNode>& leafNodes,
+		const unsigned int& bitStage);
+	void _applyOffsets(GLBuffer<LeafNode>& leafNodes,
+		const unsigned int& bitStage);
+	void _copyElements(GLBuffer<LeafNode>& leafNodes);
 
 	void _prefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 	void _prefixSum(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
@@ -55,7 +57,6 @@ private:
 	void _4dPrefixSumBlock(GLBuffer<unsigned int>& data_in, GLBuffer<unsigned int>& data_out);
 
 public:
-	RadixSort(GLBuffer<unsigned int>& data);
-	RadixSort(std::shared_ptr<GLBuffer<LeafNode>> leafNodes);
-	void sort();
+	RadixSort(const unsigned int& size);
+	void sort(GLBuffer<LeafNode>& leafNodes);
 };

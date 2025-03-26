@@ -15,7 +15,7 @@ private:
 		
 	// Dont understand why I cant initialize GLBuffer later.
 	// Hacky but it works.
-	std::shared_ptr<GLBuffer<LeafNode>> m_leafNodes = nullptr;
+	std::unique_ptr<GLBuffer<LeafNode>> m_leafNodes = nullptr;
 	std::unique_ptr<GLBuffer<InternalNode>> m_internalNodes = nullptr;
 	std::unique_ptr<RadixSort> m_sorter = nullptr;
 
@@ -44,4 +44,5 @@ public:
 	BVH(const unsigned int& id);
 	~BVH();
 	void draw(const Camera& camera) override;
+	void constructBVH();
 };

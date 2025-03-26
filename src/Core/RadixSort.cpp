@@ -37,8 +37,8 @@ RadixSort::RadixSort(GLBuffer<unsigned int>& data)
 
 }
 */
-RadixSort::RadixSort(std::shared_ptr<GLBuffer<LeafNode>> leafNodes)
-	: m_data(leafNodes), m_n(leafNodes->getSize())
+RadixSort::RadixSort(const unsigned int& size)
+	: m_n(size)
 {
 
 	m_temp = std::make_unique<GLBuffer<LeafNode>>
@@ -51,54 +51,38 @@ RadixSort::RadixSort(std::shared_ptr<GLBuffer<LeafNode>> leafNodes)
 	m_isBelonging = std::make_unique<GLBuffer<unsigned int>>
 		(GL_SHADER_STORAGE_BUFFER, nullptr, 4 * getNearestPowerof2(m_n), GL_STATIC_DRAW);
 
+	m_histogram.clearBuffer(0);
+	m_isBelonging->clearBuffer(0);
+	m_relativeOffsets->clearBuffer(0);
+	m_offsets.clearBuffer(0);
 }
-void RadixSort::sort()
+void RadixSort::sort(GLBuffer<LeafNode>& leafNodes)
 {
-	std::unordered_map<std::string, double> accumulatedTimes;
-
 
 	for (unsigned int bitStage = 0; bitStage < 32; bitStage += 2)
 	{
-		/*
-		TIME_AND_ACCUMULATE(_buildBuffers, "_buildBuffers", bitStage);
-		TIME_AND_ACCUMULATE(_4dPrefixSum, "_4dPrefixSum", m_isBelonging, m_relativeOffsets);
-		TIME_AND_ACCUMULATE(_prefixSum, "_prefixSum", m_histogram, m_offsets);
-		TIME_AND_ACCUMULATE(_applyOffsets, "_applyOffsets", bitStage);
-		*/
-		_buildBuffers(bitStage);
+
+		_buildBuffers(leafNodes, bitStage);
 		_4dPrefixSum(*m_isBelonging, *m_relativeOffsets);
 		_prefixSum(m_histogram, m_offsets);
-		_applyOffsets(bitStage);
+		_applyOffsets(leafNodes, bitStage);
+		std::swap(leafNodes.getIDByRef(), m_temp->getIDByRef());
 
-		std::swap(m_data->getIDByRef(), m_temp->getIDByRef());
-
+		
 		m_histogram.clearBuffer(0);
 		m_isBelonging->clearBuffer(0);
 		m_relativeOffsets->clearBuffer(0);
 		m_offsets.clearBuffer(0);
 	}
-	//auto a = m_data.retrieveBuffer();
-	/*
-	for (auto& i : accumulatedTimes)
-	{
-		std::cout << i.first << " " << i.second << " ms" << std::endl;
-	}
-	*/
-	/*
-	auto a = m_data->retrieveBuffer();
-	for (int i = 0; i < a.size(); ++i)
-	{
-		std::cout << a[i].code << std::endl;
-	}
-	*/
 }
 
-void RadixSort::_buildBuffers(const unsigned int& bitStage)
+void RadixSort::_buildBuffers(GLBuffer<LeafNode>& leafNodes, 
+	const unsigned int& bitStage)
 {
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
 
-	m_data->sendToGPU(0);
+	leafNodes.sendToGPU(0);
 	m_isBelonging->sendToGPU(1);
 	m_histogram.sendToGPU(2);
 
@@ -111,10 +95,11 @@ void RadixSort::_buildBuffers(const unsigned int& bitStage)
 	m_buildBuffers.dispatch(numBlocks, 1, 1);
 }
 
-void RadixSort::_computeHistogram(const unsigned int& bitStage)
+void RadixSort::_computeHistogram(GLBuffer<LeafNode>& leafNodes,
+	const unsigned int& bitStage)
 {
 	m_histogram.sendToGPU(0);
-	m_data->sendToGPU(1);
+	leafNodes.sendToGPU(1);
 
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
@@ -127,12 +112,13 @@ void RadixSort::_computeHistogram(const unsigned int& bitStage)
 	m_computeHistogram.dispatch(numBlocks, 1, 1);
 }
 
-void RadixSort::_applyOffsets(const unsigned int& bitStage)
+void RadixSort::_applyOffsets(GLBuffer<LeafNode>& leafNodes,
+	const unsigned int& bitStage)
 {
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / 1024;
 
-	m_data->sendToGPU(0);
+	leafNodes.sendToGPU(0);
 	m_temp->sendToGPU(1);
 	m_relativeOffsets->sendToGPU(2);
 	m_offsets.sendToGPU(3);
@@ -145,12 +131,12 @@ void RadixSort::_applyOffsets(const unsigned int& bitStage)
 	m_applyOffsets.dispatch(numBlocks, 1, 1);
 }
 
-void RadixSort::_copyElements()
+void RadixSort::_copyElements(GLBuffer<LeafNode>& leafNodes)
 {
 	const unsigned int numThreads = 1024;
 	const unsigned int numBlocks = (numThreads + m_n - 1) / numThreads;
 
-	m_data->sendToGPU(0);
+	leafNodes.sendToGPU(0);
 	m_temp->sendToGPU(1);
 
 	m_copyElements.bind();

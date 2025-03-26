@@ -10,6 +10,7 @@ void  ComputeShader::dispatch(GLuint x, GLuint y, GLuint z)
 	bind();
 	glDispatchCompute(x, y, z);
 	glMemoryBarrier(GL_ALL_BARRIER_BITS);
+	
 	//glFinish();
 	unbind();
 	//std::cout << "complted" << std::endl;

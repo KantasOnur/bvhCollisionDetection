@@ -27,6 +27,21 @@ void Game::run()
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
 
+        ImGui::Begin("##fps_overlay", nullptr,
+            ImGuiWindowFlags_NoTitleBar |
+            ImGuiWindowFlags_NoResize |
+            ImGuiWindowFlags_AlwaysAutoResize |
+            ImGuiWindowFlags_NoMove |
+            ImGuiWindowFlags_NoSavedSettings |
+            ImGuiWindowFlags_NoFocusOnAppearing |
+            ImGuiWindowFlags_NoNav);
+
+        ImGui::SetWindowPos(ImVec2(10, 10), ImGuiCond_Always); // Top-left corner
+        ImGui::Text("FPS: %.1f", ImGui::GetIO().Framerate);
+
+        ImGui::End();
+
+
         //std::cout << 1 / m_window->getDeltaTime() << std::endl;
         m_scene->render();
 

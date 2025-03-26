@@ -25,17 +25,19 @@ BVH::BVH(const unsigned int& entityID)
 	: m_entityID(entityID), Mesh("cube")
 {
 	const unsigned int triangleCount = EntityManager::getInstance().getTriangleCount(entityID);
-	m_leafNodes = std::make_shared<GLBuffer<LeafNode>>
+	m_leafNodes = std::make_unique<GLBuffer<LeafNode>>
 		(GL_SHADER_STORAGE_BUFFER, nullptr, triangleCount, GL_STATIC_DRAW);
 
 	m_internalNodes = std::make_unique<GLBuffer<InternalNode>>
 		(GL_SHADER_STORAGE_BUFFER, std::vector<InternalNode>(m_leafNodes->getSize() - 1), GL_STATIC_DRAW);
 
-	m_sorter = std::make_unique<RadixSort>(m_leafNodes);
+	m_sorter = std::make_unique<RadixSort>(m_leafNodes->getSize());
 
-	_constructLeafNodes();
-	_constructInternalNodes();
-	_constructBounds();
+	/*
+	constructBVH();
+	std::vector<InternalNode> nodes = m_internalNodes->retrieveBuffer();
+	std::vector<LeafNode> lf = m_leafNodes->retrieveBuffer();
+	*/
 }
 BVH::~BVH()
 {
@@ -44,12 +46,25 @@ BVH::~BVH()
 
 void BVH::draw(const Camera& camera)
 {
+	constructBVH();
+	/*
+	std::vector<InternalNode> nodes = m_internalNodes->retrieveBuffer();
+
 	static int depth = 0;
 	ImGui::Begin("BVH");
 	ImGui::InputInt("BVH depth", &depth, 1);
-	std::vector<InternalNode> nodes = m_internalNodes->retrieveBuffer();
+
 	drawRecursive(camera, depth, nodes, 0);
 	ImGui::End();
+	*/
+
+}
+
+void BVH::constructBVH()
+{
+	_constructLeafNodes();
+	_constructInternalNodes();
+	_constructBounds();
 }
 
 void BVH::drawRecursive(const Camera& camera, const unsigned int depth, 
@@ -81,7 +96,9 @@ void BVH::drawRecursive(const Camera& camera, const unsigned int depth,
 void BVH::_constructLeafNodes()
 {
 	_getMortonCodes();
-	m_sorter->sort();
+	std::vector<LeafNode> lf = m_leafNodes->retrieveBuffer();
+	m_sorter->sort(*m_leafNodes);
+	lf = m_leafNodes->retrieveBuffer();
 }
 
 void BVH::_constructInternalNodes()

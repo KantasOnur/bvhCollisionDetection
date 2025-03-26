@@ -1,15 +1,16 @@
 #version 430 core
+#include <BVHNodes>
 
 layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
 
 layout(std430, binding = 0) buffer dataBufferIn
 {
-    uint data_in[];
+    LeafNode data_in[];
 };
 
 layout(std430, binding = 1) buffer dataBufferOut
 {
-    uint data_out[];
+    LeafNode data_out[];
 };
 
 uniform uint n;
@@ -19,5 +20,5 @@ void main()
     const uint threadID = gl_GlobalInvocationID.x;
     if(threadID >= n) return;
 
-    data_in[threadID] = data_out[threadID];
+    data_in[threadID].code = 1;
 }
