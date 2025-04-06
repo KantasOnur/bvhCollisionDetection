@@ -7,12 +7,12 @@
 Scene::Scene(const Window& window)
 	: m_camera(window.getAspectRatio())
 {
-	Entity* d0 = new Entity("dragon");
-	Entity* d1 = new Entity("armadillo", glm::vec3(0.0f, 1.0f, 0.0f));
+	Entity* d0 = new Entity("dragon_80k", glm::vec3(7.0f, 0.0f, 0.0f));
+	Entity* d1 = new Entity("Armadillo", glm::vec3(1.0f, 0.0f, 0.0f));
 	addSubject(d0->getID());
 	addSubject(d1->getID());
 	m_simulator.subEntity(d0->getID());
-	//m_simulator.subEntity(d1->getID());
+	m_simulator.subEntity(d1->getID());
 }
 
 void Scene::addSubject(const unsigned int& id)
@@ -23,7 +23,7 @@ void Scene::addSubject(const unsigned int& id)
 void Scene::render()
 {
 	m_simulator.step(m_entities);
-	m_simulator.draw(m_camera);
+	//m_simulator.draw(m_camera);
 
 	for (auto& id : m_entities)
 	{

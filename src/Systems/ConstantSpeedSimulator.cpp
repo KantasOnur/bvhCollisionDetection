@@ -17,7 +17,7 @@ void ConstantSpeedSimulator::subEntity(const unsigned int& id)
 void ConstantSpeedSimulator::draw(const Camera& camera)
 {
 	_drawGui();
-
+	/*
 	for (auto& it : m_entityToVelocity)
 	{
 
@@ -37,10 +37,12 @@ void ConstantSpeedSimulator::draw(const Camera& camera)
 		_drawMesh(camera);
 		m_shader.unbind();
 	}
+	*/
 }
 
 void ConstantSpeedSimulator::step(const std::vector<unsigned int>& sceneEntities)
 {
+	/*
 	static bool autoStep = false;
 	
 	ImGui::Begin("Simulator Parameters");
@@ -52,6 +54,7 @@ void ConstantSpeedSimulator::step(const std::vector<unsigned int>& sceneEntities
 		for (auto& it : m_entityToVelocity)
 		{
 			Entity& entity = EntityManager::getInstance().getEntity(it.first);
+			entity.constructBVH();
 			glm::vec3 velocity = it.second;
 			glm::vec3 position = entity.getPosition();
 			position += velocity * m_dt;
@@ -64,6 +67,16 @@ void ConstantSpeedSimulator::step(const std::vector<unsigned int>& sceneEntities
 	}
 	
 	ImGui::End();
+	*/
+
+	for (auto& it : m_entityToVelocity)
+	{
+		Entity& entity = EntityManager::getInstance().getEntity(it.first);
+		glm::vec3 position = entity.getPosition();
+		if (ImGui::SliderFloat3(std::format("Entity {}: Position", it.first).c_str(), &position[0], 0.0f, 10.0f))
+			entity.setPosition(position);
+		m_collisionHandler.checkCollisions(entity.getID(), sceneEntities, position);
+	}
 }
 
 void ConstantSpeedSimulator::_drawGui()
@@ -72,8 +85,20 @@ void ConstantSpeedSimulator::_drawGui()
 	ImGui::InputFloat("Time step", &m_dt);
 	for (auto& it : m_entityToVelocity)
 	{
+		/*
 		glm::vec3& v = it.second;
-		ImGui::SliderFloat3(std::format("Entity {} velocity", it.first).c_str(), &v[0], -1.0f, 1.0f);
+		if (ImGui::SliderFloat3(std::format("Entity {} velocity", it.first).c_str(), &v[0], -1.0f, 1.0f))
+		{
+			std::cout << "here" << std::endl;
+		}
+		*/
+		Entity& entity = EntityManager::getInstance().getEntity(it.first);
+		glm::vec3 position = entity.getPosition();
+		if (ImGui::SliderFloat3(std::format("Entity {}: Position", it.first).c_str(), &position[0], 0.0f, 10.0f))
+		{
+			entity.setPosition(position);
+		}
+
 	}
 	ImGui::End();
 }

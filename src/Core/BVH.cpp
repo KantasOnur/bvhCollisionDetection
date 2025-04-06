@@ -32,7 +32,8 @@ BVH::BVH(const unsigned int& entityID)
 		(GL_SHADER_STORAGE_BUFFER, std::vector<InternalNode>(m_leafNodes->getSize() - 1), GL_STATIC_DRAW);
 
 	m_sorter = std::make_unique<RadixSort>(m_leafNodes->getSize());
-
+	m_numLeaves = m_leafNodes->getSize();
+	m_numInternals = m_internalNodes->getSize();
 	/*
 	constructBVH();
 	std::vector<InternalNode> nodes = m_internalNodes->retrieveBuffer();
@@ -46,18 +47,11 @@ BVH::~BVH()
 
 void BVH::draw(const Camera& camera)
 {
-	constructBVH();
-	/*
+	//constructBVH();
 	std::vector<InternalNode> nodes = m_internalNodes->retrieveBuffer();
-
-	static int depth = 0;
-	ImGui::Begin("BVH");
-	ImGui::InputInt("BVH depth", &depth, 1);
-
-	drawRecursive(camera, depth, nodes, 0);
-	ImGui::End();
-	*/
-
+	auto a = m_leafNodes->retrieveBuffer();
+	ImGui::InputInt(std::format("BVH depth {}", m_entityID).c_str(), &m_depth, 1);
+	drawRecursive(camera, m_depth, nodes, 0);
 }
 
 void BVH::constructBVH()
@@ -72,10 +66,11 @@ void BVH::drawRecursive(const Camera& camera, const unsigned int depth,
 {
 	if (depth == 0)
 	{
+		glm::mat4 modelMatrix = EntityManager::getInstance().getEntity(m_entityID).getModelMatrix();
 		shader.bind();
 		shader.setMatrix4f("projectionMatrix", camera.getProjection());
 		shader.setMatrix4f("viewMatrix", camera.getView());
-		shader.setMatrix4f("modelMatrix", glm::mat4(1.0f));
+		shader.setMatrix4f("modelMatrix", modelMatrix);
 
 		shader.setVec4f("min", nodes[currentNode].box.min);
 		shader.setVec4f("max", nodes[currentNode].box.max);
@@ -96,9 +91,10 @@ void BVH::drawRecursive(const Camera& camera, const unsigned int depth,
 void BVH::_constructLeafNodes()
 {
 	_getMortonCodes();
-	std::vector<LeafNode> lf = m_leafNodes->retrieveBuffer();
+	//std::vector<LeafNode> lf = m_leafNodes->retrieveBuffer();
 	m_sorter->sort(*m_leafNodes);
-	lf = m_leafNodes->retrieveBuffer();
+	//lf = m_leafNodes->retrieveBuffer();
+
 }
 
 void BVH::_constructInternalNodes()
@@ -138,8 +134,8 @@ void BVH::_getMortonCodes()
 	Entity& entity = EntityManager::getInstance().getEntity(m_entityID);
 	const GLBuffer<MeshLoader::Vertex>& verticies = entity.getVerticies();
 	const GLBuffer<unsigned int>& indicies = entity.getIndicies();
-	entity.getMinMax(min, max);
-
+	entity.getMinMaxModel(min, max);
+	glm::mat4 modelMatrix = entity.getModelMatrix();
 
 	const unsigned int triangleCount = indicies.getSize() / 3;
 	const unsigned int threadsPerBlock = 1024;
@@ -153,7 +149,14 @@ void BVH::_getMortonCodes()
 	_computeMortonCodes.setVec3f("u_min", min);
 	_computeMortonCodes.setVec3f("u_max", max);
 	_computeMortonCodes.setUInt("triangleCount", triangleCount);
+	_computeMortonCodes.setMatrix4f("u_modelMatrix", modelMatrix);
 	_computeMortonCodes.unbind();
 
 	_computeMortonCodes.dispatch(numBlocks, 1, 1);
+}
+
+void BVH::bindToLocation(const unsigned int& i0, const unsigned& i1)
+{
+	m_leafNodes->sendToGPU(i0);
+	m_internalNodes->sendToGPU(i1);
 }

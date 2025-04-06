@@ -1,0 +1,171 @@
+#version 430 core
+#include <BVHNodes>
+
+layout (local_size_x = 1024, local_size_y = 1, local_size_z = 1) in;
+
+struct Vertex 
+{
+    vec4 position;
+	vec4 normal;
+    vec4 color;
+};
+
+struct Triangle
+{
+    vec3 A;
+    vec3 B;
+    vec3 C;
+};
+
+layout(std430, binding = 0) buffer VertexBuffer_i
+{
+    Vertex verticies_i[];
+};
+
+layout(std430, binding = 1) buffer IndexBuffer_i
+{
+    uint indicies_i[];
+};
+
+layout(std430, binding = 2) buffer VertexBuffer_j
+{
+    Vertex verticies_j[];
+};
+
+layout(std430, binding = 3) buffer IndexBuffer_j
+{
+    uint indicies_j[];
+};
+
+layout(std430, binding = 4) buffer BVHLeaves_j
+{
+    LeafNode leafNodes[];
+};
+
+layout(std430, binding = 5) buffer BVHInternals_j
+{
+    InternalNode internalNodes[];
+};
+
+uniform uint nVertex_i;
+uniform uint nVertex_j;
+uniform uint nIndex_i;
+uniform uint nIndex_j;
+uniform uint nLeaves;
+uniform uint nInternals;
+
+uniform mat4 modelMatrix_i;
+uniform mat4 modelMatrix_j;
+
+
+int rayTriangleIntersection(Triangle triangle, vec3 rayOrigin, vec3 rayDirection)
+{
+    const float EPSILON = 0.001e-9;
+    
+    vec3 e1 = triangle.B - triangle.A;
+    vec3 e2 = triangle.C - triangle.A;
+    vec3 p  = cross(rayDirection, e2);
+    float det = dot(e1, p);
+    
+    // Ray is parallel to the triangle
+    if (abs(det) < EPSILON) {
+        return 0;
+    }
+    
+    float invDet = 1.0 / det;
+    
+    vec3 T = rayOrigin - triangle.A;
+    float u = dot(T, p) * invDet;
+    if (u < 0.0 || u > 1.0) {
+        return 0;
+    }
+
+    
+    vec3 q = cross(T, e1);
+    float v = dot(rayDirection, q) * invDet;
+    if (v < 0.0 || (u + v) > 1.0) {
+        return 0;
+    }
+
+
+    float t = dot(e2, q) * invDet;
+    if(t > EPSILON) return 1;
+    return 0;
+}
+
+int handleLeafNode(LeafNode leafNode, vec3 rayOrigin, vec3 rayDirection)
+{
+    Triangle triangle = Triangle(
+        vec3(modelMatrix_j * verticies_j[leafNode.i0].position),
+        vec3(modelMatrix_j * verticies_j[leafNode.i1].position),
+        vec3(modelMatrix_j * verticies_j[leafNode.i2].position)
+    );
+    return rayTriangleIntersection(triangle, rayOrigin, rayDirection);
+}
+
+bool rayIntersectAABB(Box box, vec3 rayOrigin, vec3 rayDirection)
+{
+    box = Box(modelMatrix_j * box.min, modelMatrix_j * box.max);
+
+    vec3 t1 = (vec3(box.min) - rayOrigin) / rayDirection;
+    vec3 t2 = (vec3(box.max) - rayOrigin) / rayDirection;
+    
+    vec3 tMin = min(t1, t2);
+    vec3 tMax = max(t1, t2);
+    
+    float entry = max(max(tMin.x, tMin.y), tMin.z);
+    float exit  = min(min(tMax.x, tMax.y), tMax.z);
+
+    return (exit >= 0.0 && entry <= exit);
+}
+
+void main()
+{
+
+	const uint threadID = gl_GlobalInvocationID.x;
+    if(threadID >= nVertex_i) return;
+
+    Vertex querryVertex = verticies_i[threadID];
+    vec3 rayOrigin = vec3(modelMatrix_i * querryVertex.position);
+    vec3 rayDirection = vec3(querryVertex.normal);
+
+    uint count = 0;
+
+    verticies_i[threadID].color = vec4(0.0f, 1.0f, 0.0f, 1.0f);
+
+    int rootIndex = 0;
+    uint stack[64];
+    int stackPtr = 0;
+    stack[stackPtr++] = 0;
+
+    while(stackPtr > 0)
+    {
+        uint currentIndex = stack[--stackPtr];
+        InternalNode currentNode = internalNodes[currentIndex];
+        
+        if(currentNode.is_left_internal == 1)
+        {
+            uint leftIndex = currentNode.left;
+            if(rayIntersectAABB(internalNodes[currentNode.left].box, rayOrigin, rayDirection)) 
+                stack[stackPtr++] = leftIndex;
+        }
+        else
+        {
+            count += handleLeafNode(leafNodes[currentNode.left], rayOrigin, rayDirection);
+        }
+
+        if(currentNode.is_right_internal == 1)
+        {
+            uint rightIndex = currentNode.right;
+            if(rayIntersectAABB(internalNodes[currentNode.right].box, rayOrigin, rayDirection))
+                stack[stackPtr++] = rightIndex;
+        }
+        else
+        {
+            count += handleLeafNode(leafNodes[currentNode.right], rayOrigin, rayDirection);
+        }
+    }
+
+    if(count % 2 != 0) verticies_i[threadID].color = vec4(1.0f, 0.0f, 0.0f, 1.0f);
+}
+

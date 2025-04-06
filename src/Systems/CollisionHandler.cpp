@@ -39,12 +39,14 @@ bool CollisionHandler::checkCollisions(const unsigned int& id,
 	{
 		if (id == sceneEntities[j]) continue;
 		const unsigned int j_id = sceneEntities[j];
-		bool missedCollision = _checkSweepCollision(id, j_id);
-		if (!missedCollision && _isAABBCollided(id, j_id))
+		//bool missedCollision = _checkSweepCollision(id, j_id);
+		if (_isAABBCollided(id, j_id))
 		{
 			// Position is updated here, because doing so in the simulator causes the _handleCollision function to use the old position
-			EntityManager::getInstance().getEntity(id).setPosition(newPosition);
-			_handleCollision(id, j_id);
+			//EntityManager::getInstance().getEntity(id).setPosition(newPosition);
+			
+			//_handleCollisionNaive(id, j_id);
+			_handleCollisionBVH(id, j_id);
 			return true;
 		}
 	}
@@ -59,8 +61,8 @@ bool CollisionHandler::_isAABBCollided(const unsigned int& i_id, const unsigned 
 	glm::vec3 min_i, max_i;
 	glm::vec3 min_j, max_j;
 
-	entity_i.getMinMax(min_i, max_i);
-	entity_j.getMinMax(min_j, max_j);
+	entity_i.getMinMaxWorld(min_i, max_i);
+	entity_j.getMinMaxWorld(min_j, max_j);
 
 	return (
 		min_i.x <= max_j.x &&
@@ -72,11 +74,12 @@ bool CollisionHandler::_isAABBCollided(const unsigned int& i_id, const unsigned 
 		);
 }
 
-void CollisionHandler::_handleCollision(const unsigned int& i_id, const unsigned int& j_id)
+void CollisionHandler::_handleCollisionNaive(const unsigned int& i_id, const unsigned int& j_id)
+
 {
-	
 	Entity& entity_i = EntityManager::getInstance().getEntity(i_id);
 	Entity& entity_j = EntityManager::getInstance().getEntity(j_id);
+
 
 	const auto& verticies_i = entity_i.getVerticies();
 	const auto& verticies_j = entity_j.getVerticies();
@@ -105,4 +108,79 @@ void CollisionHandler::_handleCollision(const unsigned int& i_id, const unsigned
 	const unsigned int threadsPerBlock = 1024;
 	const size_t numBlocks = (threadsPerBlock + verticies_i.getSize() - 1) / threadsPerBlock;
 	naive.dispatch(numBlocks, 1, 1);
+	
+}
+
+void CollisionHandler::_handleCollisionBVH(const unsigned int& i_id, const unsigned int& j_id)
+{
+
+	unsigned int numLeaves, numInternals;
+
+	Entity& entity_i = EntityManager::getInstance().getEntity(i_id);
+	Entity& entity_j = EntityManager::getInstance().getEntity(j_id);
+
+	entity_j.constructBVH();
+	entity_j.getBVHSize(numLeaves, numInternals);
+
+
+	const auto& verticies_i = entity_i.getVerticies();
+	const auto& verticies_j = entity_j.getVerticies();
+
+	const auto& indicies_i = entity_i.getIndicies();
+	const auto& indicies_j = entity_j.getIndicies();
+
+	verticies_i.sendToGPU(0);
+	indicies_i.sendToGPU(1);
+
+	verticies_j.sendToGPU(2);
+	indicies_j.sendToGPU(3);
+	entity_j.bindBVH(4, 5);
+
+	bvh.bind();
+	bvh.setUInt("nVertex_i", verticies_i.getSize());
+	bvh.setUInt("nVertex_j", verticies_j.getSize());
+
+	bvh.setUInt("nIndex_i", indicies_i.getSize());
+	bvh.setUInt("nIndex_j", indicies_j.getSize());
+	bvh.setUInt("nLeaves", numLeaves);
+	bvh.setUInt("nInternals", numInternals);
+	bvh.setMatrix4f("modelMatrix_i", entity_i.getModelMatrix());
+	bvh.setMatrix4f("modelMatrix_j", entity_j.getModelMatrix());
+	bvh.unbind();
+
+	// shoot rays from each vertex of entity_i to entity_j to see if the associated vertex
+	// is contained within j.
+
+	const unsigned int threadsPerBlock = 1024;
+	const size_t numBlocks = (threadsPerBlock + verticies_i.getSize() - 1) / threadsPerBlock;
+	bvh.dispatch(numBlocks, 1, 1);
+	/*
+	const auto& verticies_i = entity_i.getVerticies();
+	const auto& verticies_j = entity_j.getVerticies();
+
+	const auto& indicies_i = entity_i.getIndicies();
+	const auto& indicies_j = entity_j.getIndicies();
+
+	verticies_i.sendToGPU(0);
+	indicies_i.sendToGPU(1);
+
+	verticies_j.sendToGPU(2);
+	indicies_j.sendToGPU(3);
+	entity_j.bindBVH(4, 5);
+
+	naive.bind();
+	naive.setUInt("nVertex_i", verticies_i.getSize());
+	naive.setUInt("nVertex_j", verticies_j.getSize());
+
+	naive.setUInt("nIndex_i", indicies_i.getSize());
+	naive.setUInt("nIndex_j", indicies_j.getSize());
+
+	naive.setMatrix4f("modelMatrix_i", entity_i.getModelMatrix());
+	naive.setMatrix4f("modelMatrix_j", entity_j.getModelMatrix());
+	naive.unbind();
+
+	const unsigned int threadsPerBlock = 1024;
+	const size_t numBlocks = (threadsPerBlock + verticies_i.getSize() - 1) / threadsPerBlock;
+	naive.dispatch(numBlocks, 1, 1);
+	*/
 }
